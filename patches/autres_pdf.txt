@@ -1,0 +1,13 @@
+// Numéroter « Page x / y » : DepartController::fiche, DiligenceController::accuse, PilotageController::exportPdf
+// a) en haut du contrôleur : use App\Support\ExportPdf;
+// b) changer « return Pdf::loadView( » en :
+        return ExportPdf::paginer(Pdf::loadView(
+// c) et fermer la parenthèse : « ])->setPaper('a4', 'portrait')->stream(...) » devient :
+        ])->setPaper('a4', 'portrait'))->stream(...);
+
+// Fiche de transmission (courrier/fiche_pdf.blade.php) : une seule ligne, la couleur des bandeaux gris.
+// Remplacer, dans <style> :
+  .bandeau th { background: #6b6b6b; ...
+// par :
+  .bandeau th { background: {{ \App\Support\ExportTheme::hex('fiche_bandeau') }}; ...
+// (le reste de la fiche reste fidèle au modèle papier)

@@ -1,0 +1,1215 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\ActionCle;
+use App\Models\ActionMesurable;
+use App\Models\AlerteEnvoyee;
+use App\Models\Axe;
+use App\Models\Direction;
+use App\Models\Exercice;
+use App\Models\Personnel;
+use App\Models\Priorite;
+use App\Models\RoleAffectation;
+use App\Models\SituationTemporelle;
+use App\Models\StatutExecution;
+use App\Models\Tache;
+use App\Models\ProfilAcces;
+use App\Models\TacheHistorique;
+use App\Models\Affectation;
+use App\Support\ListeTachesDonnees;
+use App\Support\VuesTachesDonnees;
+use App\Support\JournalTache;
+use App\Support\JustificationRetard;
+use App\Support\FiltresTaches;
+use App\Support\AvancementTache;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+
+class FeuilleRouteControlleur extends Controller
+{
+    /**
+     * Administrateur : seul autorise a modifier une tache deja terminee.
+     */
+    private function estAdmin(): bool
+    {
+        return auth()->user()?->profilAcces?->slug === ProfilAcces::ADMINISTRATEUR;
+    }
+
+    private function exigerProfils(string $profils): void
+    {
+        abort_unless(auth()->user()?->hasRole($profils), 403, "Vous n'avez pas le droit d'effectuer cette action.");
+    }
+
+    /**
+     * Exercice affiche par defaut : celui de l'annee en cours ET actif.
+     * Repli : l'exercice actif (meme si son annee n'est pas l'annee en cours), sinon aucun (tout afficher).
+     */
+    private function exerciceParDefaut(): ?int
+    {
+        return Exercice::parDefaut()?->id;
+        // return (Exercice::where('annee', now()->year)->where('actif', true)->first()
+        //     ?? Exercice::actif())?->id;
+    }
+
+    /** Exercice des listes : choix explicite (vide = tous), sinon exercice par défaut. */
+    private function exerciceFiltre(Request $request): ?int
+    {
+        return $request->has('exercice_id') ? ($request->integer('exercice_id') ?: null) : $this->exerciceParDefaut();
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Axe
+    |--------------------------------------------------------------------------
+    */
+
+    public function axes(Request $request)
+    {
+        $exerciceId = $this->exerciceFiltre($request);
+        $exerciceDefautId = $this->exerciceParDefaut();
+        $axes = Axe::with('exercice')->when($exerciceId, fn ($q) => $q->where('exercice_id', $exerciceId))->orderBy('ordre')->get();
+        $exercices = Exercice::orderByDesc('annee')->get();
+
+        return view('feuille_de_route.axe', compact('axes', 'exercices', 'exerciceId', 'exerciceDefautId'));
+    }
+
+    /** Structure d'un exercice (axes > actions clés > actions mesurables) pour la cascade des formulaires et des filtres. */
+    public function matrice(Exercice $exercice)
+    {
+        $axes = $exercice->axes()->orderBy('ordre')->with('actionsCles.actionsMesurables')->get();
+
+        return response()->json($axes->map(fn ($axe) => [
+            'id' => $axe->id,
+            'libelle' => trim($axe->code.' — '.$axe->libelle),
+            'actions_cles' => $axe->actionsCles->map(fn ($ac) => [
+                'id' => $ac->id,
+                'libelle' => trim($ac->code.' — '.$ac->libelle),
+                'actions_mesurables' => $ac->actionsMesurables->map(fn ($am) => [
+                    'id' => $am->id,
+                    'libelle' => trim($am->code.' — '.$am->libelle),
+                ])->values(),
+            ])->values(),
+        ])->values());
+    }
+
+    public function storeAxe(Request $request)
+    {
+        $this->exigerProfils('ADMIN|DG');
+
+        $id = $request->input('id_');
+
+        $validator = Validator::make($request->all(), [
+            'exercice_id' => ['required', 'exists:exercices,id'],
+            'libelle' => [
+                'required', 'string', 'max:255',
+                Rule::unique('axes', 'libelle')->where('exercice_id', $request->input('exercice_id'))->ignore($id),
+            ],
+            'resultat_attendu' => ['nullable', 'string'],
+            'description' => ['nullable', 'string'],
+            'ordre' => ['required', 'integer', 'min:1'],
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()->withErrors($validator)->withInput();
+        }
+
+        $donnees = $validator->validated();
+
+        if ($id) {
+            $axe = Axe::findOrFail($id);
+            $axe->update($donnees);
+            $message = 'Axe mis à jour avec succès !';
+        } else {
+            Axe::create($donnees);
+            $message = 'Axe créé avec succès !';
+        }
+
+        return redirect()->back()->with('success', $message);
+    }
+
+    public function getAxe($id)
+    {
+        $this->exigerProfils('ADMIN|DG');
+
+        $axe = Axe::findOrFail($id);
+
+        return response()->json($axe);
+    }
+
+    public function deleteAxe($id)
+    {
+        $this->exigerProfils('ADMIN|DG');
+
+        $axe = Axe::withCount('actionsCles')->find($id);
+
+        if (! $axe) {
+            return response()->json(['status' => false, 'message' => 'Axe introuvable.'], 404);
+        }
+
+        if ($axe->actions_cles_count > 0) {
+            return response()->json([
+                'status' => false,
+                'message' => "Impossible de supprimer cet axe : {$axe->actions_cles_count} action(s) clé(s) y sont encore rattachées. Supprimez-les d'abord.",
+            ], 422);
+        }
+
+        $axe->delete();
+
+        return response()->json(['status' => true, 'message' => 'Axe supprimé avec succès.']);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Action cle
+    |--------------------------------------------------------------------------
+    */
+
+    public function actionsCles(Request $request)
+    {
+        $exerciceId = $this->exerciceFiltre($request);
+        $exerciceDefautId = $this->exerciceParDefaut();
+        $exercices = Exercice::orderByDesc('annee')->get();
+        $directionFiltre = $request->integer('direction_id') ?: null;
+
+        $actionsCles = ActionCle::with(['axe', 'direction', 'directionsAssociees', 'affectations.personnel'])
+            ->when($exerciceId, fn ($q) => $q->whereHas('axe', fn ($a) => $a->where('exercice_id', $exerciceId)))
+            ->when($request->filled('axe_id'), fn ($q) => $q->where('axe_id', $request->integer('axe_id')))
+            ->when($directionFiltre, fn ($q) => $q->where(fn ($w) => $w
+                ->where('direction_id', $directionFiltre)
+                ->orWhereHas('directionsAssociees', fn ($d) => $d->where('directions.id', $directionFiltre))))
+            ->orderBy('ordre')->get();
+        $axes = Axe::orderBy('ordre')->get();
+        $directions = Direction::orderBy('nom')->get();
+        $roles = RoleAffectation::where('actif', true)->orderBy('libelle')->get();
+        $personnels = Personnel::where('actif', true)->orderBy('nom')->get();
+        $responsableRoleId = RoleAffectation::where('code', RoleAffectation::RESPONSABLE)->value('id');
+
+        return view('feuille_de_route.action_cle', compact(
+            'actionsCles', 'axes', 'directions', 'roles', 'personnels', 'responsableRoleId',
+            'exercices', 'exerciceId', 'exerciceDefautId'
+        ));
+    }
+
+    public function storeActionCle(Request $request)
+    {
+        $this->exigerProfils('ADMIN|DG');
+
+        $id = $request->input('id_');
+
+        $validator = Validator::make($request->all(), [
+            'axe_id' => ['required', 'exists:axes,id'],
+            'direction_id' => ['nullable', 'required_with:directions_associees', 'exists:directions,id'],
+            'directions_associees' => ['nullable', 'array'],
+            'directions_associees.*' => ['exists:directions,id'],
+            'code' => ['nullable', 'string', 'max:20'],
+            'libelle' => ['required', 'string'],
+            'description' => ['nullable', 'string'],
+            'ordre' => ['required', 'integer', 'min:1'],
+            'affectations' => ['nullable', 'array'],
+            'affectations.*' => ['nullable', 'array'],
+            'affectations.*.*' => ['exists:personnel,id'],
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()->withErrors($validator)->withInput();
+        }
+
+        $donnees = $validator->validated();
+        $affectations = $donnees['affectations'] ?? [];
+        unset($donnees['affectations']);
+
+        // Directions associées : la principale n'en fait pas partie
+        $associees = array_values(array_diff($donnees['directions_associees'] ?? [], [(int) ($donnees['direction_id'] ?? 0)]));
+        unset($donnees['directions_associees']);
+
+        if ($id) {
+            $actionCle = ActionCle::findOrFail($id);
+            $actionCle->update($donnees);
+            $message = 'Action clé mise à jour avec succès !';
+        } else {
+            $actionCle = ActionCle::create($donnees);
+            $message = 'Action clé créée avec succès !';
+        }
+
+        $this->syncAffectations($actionCle, $affectations);
+        $actionCle->directionsAssociees()->sync($associees);
+
+        return redirect()->back()->with('success', $message);
+    }
+
+    public function getActionCle($id)
+    {
+        $this->exigerProfils('ADMIN|DG');
+
+        $actionCle = ActionCle::with(['affectations', 'axe'])->findOrFail($id);
+
+        return response()->json(array_merge($actionCle->toArray(), [
+            'affectations' => $this->affectationsParRole($actionCle),
+            'exercice_id' => $actionCle->axe?->exercice_id,
+            'directions_associees' => $actionCle->directionsAssociees()->pluck('directions.id'),
+        ]));
+    }
+
+    public function deleteActionCle($id)
+    {
+        $this->exigerProfils('ADMIN|DG');
+
+        $actionCle = ActionCle::withCount('actionsMesurables')->find($id);
+
+        if (! $actionCle) {
+            return response()->json(['status' => false, 'message' => 'Action clé introuvable.'], 404);
+        }
+
+        if ($actionCle->actions_mesurables_count > 0) {
+            return response()->json([
+                'status' => false,
+                'message' => "Impossible de supprimer : {$actionCle->actions_mesurables_count} action(s) mesurable(s) y sont encore rattachées.",
+            ], 422);
+        }
+
+        $actionCle->delete();
+
+        return response()->json(['status' => true, 'message' => 'Action clé supprimée avec succès.']);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Action mesurable
+    |--------------------------------------------------------------------------
+    */
+
+    public function actionsMesurables(Request $request)
+    {
+        $exerciceId = $this->exerciceFiltre($request);
+        $exerciceDefautId = $this->exerciceParDefaut();
+        $exercices = Exercice::orderByDesc('annee')->get();
+
+        $actionsMesurables = ActionMesurable::with(['actionCle.axe', 'affectations.personnel'])
+            ->when($exerciceId, fn ($q) => $q->whereHas('actionCle.axe', fn ($a) => $a->where('exercice_id', $exerciceId)))
+            ->when($request->filled('axe_id'), fn ($q) => $q->whereHas('actionCle', fn ($a) => $a->where('axe_id', $request->integer('axe_id'))))
+            ->when($request->filled('action_cle_id'), fn ($q) => $q->where('action_cle_id', $request->integer('action_cle_id')))
+            ->orderBy('ordre')->get();
+        $actionsCles = ActionCle::with('axe')->orderBy('ordre')->get();
+        $roles = RoleAffectation::where('actif', true)->orderBy('libelle')->get();
+        $personnels = Personnel::where('actif', true)->orderBy('nom')->get();
+
+        return view('feuille_de_route.action_mesurable', compact('actionsMesurables', 'actionsCles', 'roles', 'personnels', 'exercices', 'exerciceId', 'exerciceDefautId'));
+    }
+
+    public function storeActionMesurable(Request $request)
+    {
+        $this->exigerProfils('ADMIN|DG');
+
+        $id = $request->input('id_');
+
+        $validator = Validator::make($request->all(), [
+            'action_cle_id' => ['required', 'exists:actions_cles,id'],
+            'libelle' => ['required', 'string'],
+            'description' => ['nullable', 'string'],
+            'ordre' => ['required', 'integer', 'min:1'],
+            'affectations' => ['nullable', 'array'],
+            'affectations.*' => ['nullable', 'array'],
+            'affectations.*.*' => ['exists:personnel,id'],
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()->withErrors($validator)->withInput();
+        }
+
+        $donnees = $validator->validated();
+        $affectations = $donnees['affectations'] ?? [];
+        unset($donnees['affectations']);
+
+        if ($id) {
+            $actionMesurable = ActionMesurable::findOrFail($id);
+            $actionMesurable->update($donnees);
+            $message = 'Action mesurable mise à jour avec succès !';
+        } else {
+            $actionMesurable = ActionMesurable::create($donnees);
+            $message = 'Action mesurable créée avec succès !';
+        }
+
+        $this->syncAffectations($actionMesurable, $affectations);
+
+        return redirect()->back()->with('success', $message);
+    }
+
+    public function getActionMesurable($id)
+    {
+        $this->exigerProfils('ADMIN|DG');
+
+        $actionMesurable = ActionMesurable::with(['affectations', 'actionCle.axe'])->findOrFail($id);
+
+        return response()->json(array_merge($actionMesurable->toArray(), [
+            'affectations' => $this->affectationsParRole($actionMesurable),
+            'axe_id' => $actionMesurable->actionCle?->axe_id,
+            'exercice_id' => $actionMesurable->actionCle?->axe?->exercice_id,
+        ]));
+    }
+
+    public function deleteActionMesurable($id)
+    {
+        $this->exigerProfils('ADMIN|DG');
+
+        $actionMesurable = ActionMesurable::withCount('taches')->find($id);
+
+        if (! $actionMesurable) {
+            return response()->json(['status' => false, 'message' => 'Action mesurable introuvable.'], 404);
+        }
+
+        if ($actionMesurable->taches_count > 0) {
+            return response()->json([
+                'status' => false,
+                'message' => "Impossible de supprimer : {$actionMesurable->taches_count} tâche(s) y sont encore rattachées.",
+            ], 422);
+        }
+
+        $actionMesurable->delete();
+
+        return response()->json(['status' => true, 'message' => 'Action mesurable supprimée avec succès.']);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Tache
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Hub des taches : une seule requete filtree, plusieurs modes d'affichage
+     * (liste, tableau matrice, kanban, arborescence) choisis via ?vue=...
+     */
+    public function taches(Request $request)
+    {
+        $vue = in_array($request->query('vue'), ['liste', 'tableau', 'kanban', 'arborescence', 'calendrier', 'gantt'], true)
+            ? $request->query('vue')
+            : 'liste';
+
+        $filtres = FiltresTaches::depuis($request);
+        $personnelConnecte = auth()->user()?->personnel_id;
+
+        $nbFiltresActifs = count($filtres);
+
+        // Exercice (annee de la feuille de route) : sans choix explicite, on retient l'exercice de l'annee
+        // en cours et actif ; "Tous" = parametre exercice_id vide ; sinon l'exercice choisi.
+        $exerciceDefautId = $this->exerciceParDefaut();
+        $exerciceId = $request->has('exercice_id')
+            ? ($request->integer('exercice_id') ?: null)
+            : $exerciceDefautId;
+
+        $taches = Tache::with(['actionMesurable.actionCle.axe.exercice', 'statutExecution', 'priorite', 'affectations.personnel'])
+            ->dansExercice($exerciceId)
+            ->avecCompteSousTaches()
+            ->when($vue === 'gantt', fn ($q) => $q->with('dependances', 'justifications')) // fleches de dependances du Gantt
+            ->visiblePar(auth()->user()) // responsable de tâche (et RD sans mandat) : uniquement ses tâches
+            ->filtrer($filtres)
+            ->orderBy('code')
+            ->get();
+
+        // Badge "Porteuse" / "Transversale" : seulement quand une direction est filtrée
+        $rolesDirection = [];
+        if (! empty($filtres['direction_id'])) {
+            $taches->loadMissing('actionMesurable.actionCle.direction', 'actionMesurable.actionCle.directionsAssociees');
+            foreach ($taches as $t) {
+                $rolesDirection[$t->id] = $t->directionsPorteuses()->contains('id', (int) $filtres['direction_id']) ? 'porteuse' : 'transversale';
+            }
+        }
+
+        $statutsExecution = StatutExecution::where('actif', true)->orderBy('code')->get();
+
+        $hierarchie = in_array($vue, ['tableau', 'arborescence'], true)
+            ? $this->construireHierarchie($taches)
+            : collect();
+
+        // Kanban : une colonne par statut, taches triees par echeance (sans echeance en dernier)
+        $colonnesKanban = $vue === 'kanban'
+            ? $statutsExecution->map(fn ($statut) => [
+                'statut' => $statut,
+                'taches' => $taches->where('statut_execution_id', $statut->id)
+                    ->sortBy(fn ($t) => [$t->date_fin ? 0 : 1, $t->date_fin?->timestamp ?? 0, $t->code])
+                    ->values(),
+            ])
+            : collect();
+
+        $rolesParCode = RoleAffectation::pluck('id', 'code');
+        $roleIds = [
+            'responsable' => $rolesParCode[RoleAffectation::RESPONSABLE] ?? null,
+            'pilote' => $rolesParCode[RoleAffectation::PILOTE] ?? null,
+            'contributeur' => $rolesParCode[RoleAffectation::CONTRIBUTEUR] ?? null,
+        ];
+
+        $responsableRoleId = $roleIds['responsable']; // utilise par la vue simple tache.blade.php
+
+        // Listes pour la barre de filtres
+        $axes = Axe::orderBy('ordre')->get();
+        $actionsCles = ActionCle::orderBy('ordre')->get();
+        $directions = Direction::orderBy('nom')->get();
+        $peutMesTaches = (bool) $personnelConnecte;
+        $exercices = Exercice::orderByDesc('annee')->get(); // selecteur d'exercice
+
+        // Listes pour le formulaire modal (creation / modification)
+        $actionsMesurables = ActionMesurable::with('actionCle.axe')->orderBy('ordre')->get();
+        $priorites = Priorite::where('actif', true)->orderBy('libelle')->get();
+        $roles = RoleAffectation::where('actif', true)->orderBy('libelle')->get();
+        $personnels = Personnel::where('actif', true)->orderBy('nom')->get();
+        $toutesLesTaches = Tache::orderBy('code')->get(['id', 'code', 'libelle']);
+
+        // Chaque mode d'affichage a sa vue et ses donnees preparees (App\Support\...)
+        $vuesBlade = [
+            'tableau' => 'feuille_de_route.tache-matrice',
+            'calendrier' => 'feuille_de_route.tache_calendar',
+            'gantt' => 'feuille_de_route.tache-gantt',
+        ];
+
+        $donneesVue = match ($vue) {
+            'tableau' => ['matrice' => VuesTachesDonnees::matrice($hierarchie)],
+            'calendrier' => ['calendrier' => VuesTachesDonnees::calendrier($taches, $responsableRoleId)],
+            'gantt' => ['gantt' => VuesTachesDonnees::gantt($taches, $responsableRoleId)],
+            default => ListeTachesDonnees::depuis($taches), // liste (et kanban / arborescence) : vue liste
+        };
+        $resume = isset($vuesBlade[$vue]) ? VuesTachesDonnees::resume($taches) : null;
+
+        return view($vuesBlade[$vue] ?? 'feuille_de_route.tache-list', compact(
+            'vue', 'taches', 'hierarchie', 'colonnesKanban', 'roleIds', 'responsableRoleId', 'nbFiltresActifs', 'peutMesTaches',
+            'axes', 'actionsCles', 'directions', 'actionsMesurables', 'priorites', 'statutsExecution',
+            'roles', 'personnels', 'toutesLesTaches', 'resume', 'exercices', 'exerciceId', 'exerciceDefautId', 'rolesDirection'
+        ) + $donneesVue);
+    }
+
+    /*
+    | URL dediees des modes d'affichage : chacune force ?vue=... puis reutilise taches().
+    | (les URL avec ?vue=tableau|calendrier|gantt continuent de fonctionner)
+    */
+
+    public function tachesMatrice(Request $request)
+    {
+        $request->query->set('vue', 'tableau');
+
+        return $this->taches($request);
+    }
+
+    public function tachesCalendrier(Request $request)
+    {
+        $request->query->set('vue', 'calendrier');
+
+        return $this->taches($request);
+    }
+
+    public function tachesGantt(Request $request)
+    {
+        $request->query->set('vue', 'gantt');
+
+        return $this->taches($request);
+    }
+
+    /**
+     * Regroupe les taches (deja filtrees) en Axe > Action cle > Action mesurable > Taches,
+     * chaque niveau trie par `ordre`. Les branches sans tache n'apparaissent pas.
+     */
+    private function construireHierarchie($taches)
+    {
+        return $taches
+            ->groupBy(fn ($t) => $t->actionMesurable->actionCle->axe_id)
+            ->map(function ($tachesAxe) {
+                $actionsCles = $tachesAxe
+                    ->groupBy(fn ($t) => $t->actionMesurable->action_cle_id)
+                    ->map(function ($tachesAc) {
+                        $actionsMesurables = $tachesAc
+                            ->groupBy('action_mesurable_id')
+                            ->map(fn ($tachesAm) => [
+                                'actionMesurable' => $tachesAm->first()->actionMesurable,
+                                'taches' => $tachesAm->sortBy('ordre')->values(),
+                            ])
+                            ->sortBy(fn ($n) => $n['actionMesurable']->ordre)
+                            ->values();
+
+                        return [
+                            'actionCle' => $tachesAc->first()->actionMesurable->actionCle,
+                            'actionsMesurables' => $actionsMesurables,
+                            'nbTaches' => $tachesAc->count(),
+                        ];
+                    })
+                    ->sortBy(fn ($n) => $n['actionCle']->ordre)
+                    ->values();
+
+                return [
+                    'axe' => $tachesAxe->first()->actionMesurable->actionCle->axe,
+                    'actionsCles' => $actionsCles,
+                    'nbTaches' => $tachesAxe->count(),
+                ];
+            })
+            ->sortBy(fn ($n) => $n['axe']->ordre)
+            ->values();
+    }
+
+    public function storeTache(Request $request)
+    {
+        $this->exigerProfils('ADMIN|DG');
+
+        $id = $request->input('id_');
+
+        $validator = Validator::make($request->all(), [
+            'action_mesurable_id' => ['required', 'exists:actions_mesurables,id'],
+            'libelle' => ['required', 'string'],
+            'indicateur' => ['nullable', 'string'],
+            'livrable' => ['nullable', 'string'],
+            'ordre' => ['required', 'integer', 'min:1'],
+            'date_debut' => ['nullable', 'date'],
+            'date_fin' => ['nullable', 'date', 'after_or_equal:date_debut'],
+            'duree_jours' => ['nullable', 'integer', 'min:0'],
+            'priorite_id' => ['nullable', 'exists:priorites,id'],
+            'budget_estime' => ['nullable', 'numeric', 'min:0'],
+            'statut_execution_id' => ['required', 'exists:statuts_execution,id'],
+            'avancement_pourcentage' => ['required', 'integer', 'min:0', 'max:100'],
+            'observations' => ['nullable', 'string'],
+            'affectations' => ['nullable', 'array'],
+            'affectations.*' => ['nullable', 'array'],
+            'affectations.*.*' => ['exists:personnel,id'],
+            'dependances' => ['nullable', 'array'],
+            'dependances.*' => ['exists:taches,id'],
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()->withErrors($validator)->withInput();
+        }
+
+        $donnees = $validator->validated();
+        $affectations = $donnees['affectations'] ?? [];
+        $dependances = $donnees['dependances'] ?? [];
+        unset($donnees['affectations'], $donnees['dependances']);
+
+        // Mode "par sous-tâches" : l'avancement est calculé, jamais saisi (ignoré côté serveur)
+        $exerciceTache = ActionMesurable::with('actionCle.axe.exercice')->find($donnees['action_mesurable_id'])?->actionCle?->axe?->exercice;
+        if ($exerciceTache?->avancementParSousTaches()) {
+            if ($id) {
+                unset($donnees['avancement_pourcentage']);
+            } else {
+                $donnees['avancement_pourcentage'] = 0;
+            }
+        }
+
+        // Mis a jour a chaque enregistrement : sert au detecteur d'inactivite.
+        $donnees['derniere_mise_a_jour_le'] = now();
+        $avant = null; // état de la tâche avant modification : sert au journal
+
+        if ($id) {
+            $tache = Tache::findOrFail($id);
+            $avant = JournalTache::instantane($tache);
+
+            // Une tache ne peut pas dependre d'elle-meme
+            $dependances = array_values(array_diff($dependances, [$tache->id]));
+
+            $tache->update($donnees + \App\Support\ClotureTache::pourStatutDirect($tache, (int) $donnees['statut_execution_id'], auth()->user()));
+            $message = 'Tâche mise à jour avec succès !';
+        } else {
+            // Situation temporelle par defaut : "Normal", geree ensuite par le moteur d'alertes
+            $donnees['situation_temporelle_id'] = SituationTemporelle::where('code', SituationTemporelle::NORMAL)->value('id');
+
+            $tache = Tache::create($donnees);
+            $message = 'Tâche créée avec succès !';
+        }
+
+        $this->syncAffectations($tache, $affectations);
+        
+        if ($avant !== null) {
+            JournalTache::enregistrer($tache, $avant, auth()->id());
+
+            // aligne avancement et statut si l'exercice est "par sous-tâches"
+            AvancementTache::recalculer($tache, auth()->id()); 
+        }
+
+        $tache->dependances()->sync($dependances);
+
+        return redirect()->back()->with('success', $message);
+    }
+
+    public function getTache($id)
+    {
+        $this->exigerProfils('ADMIN|DG');
+
+        $tache = Tache::with(['affectations', 'dependances', 'actionMesurable.actionCle.axe'])->findOrFail($id);
+
+        return response()->json(array_merge($tache->toArray(), [
+            'affectations' => $this->affectationsParRole($tache),
+            'dependances_ids' => $tache->dependances->pluck('id'),
+            'action_cle_id' => $tache->actionMesurable?->action_cle_id,
+            'axe_id' => $tache->actionMesurable?->actionCle?->axe_id,
+            'exercice_id' => $tache->actionMesurable?->actionCle?->axe?->exercice_id,
+        ]));
+    }
+
+    public function deleteTache($id)
+    {
+        $this->exigerProfils('ADMIN|DG');
+
+        $tache = Tache::withCount('dependantes')->find($id);
+
+        if (! $tache) {
+            return response()->json(['status' => false, 'message' => 'Tâche introuvable.'], 404);
+        }
+
+        if ($tache->dependantes_count > 0) {
+            return response()->json([
+                'status' => false,
+                'message' => "Impossible de supprimer : {$tache->dependantes_count} autre(s) tâche(s) dépendent de celle-ci.",
+            ], 422);
+        }
+
+        $tache->delete();
+
+        return response()->json(['status' => true, 'message' => 'Tâche supprimée avec succès.']);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Mes taches (agent connecte)
+    |--------------------------------------------------------------------------
+    */
+ 
+    public function mesTaches(Request $request)
+    {
+        $personnelId = auth()->user()?->personnel_id;
+ 
+        // Exercice : meme regle que taches() (annee en cours et actif par defaut ; "Tous" = exercice_id vide)
+        $exerciceDefautId = $this->exerciceParDefaut();
+        $exerciceId = $request->has('exercice_id')
+            ? ($request->integer('exercice_id') ?: null)
+            : $exerciceDefautId;
+ 
+        $taches = $personnelId
+            ? Tache::with(['actionMesurable.actionCle.axe.exercice', 'statutExecution', 'priorite', 'sousTaches'])
+                ->avecCompteSousTaches()
+                ->whereHas('affectations', fn ($a) => $a->where('personnel_id', $personnelId))
+                ->when($exerciceId, fn ($q) => $q->whereHas(
+                    'actionMesurable.actionCle.axe',
+                    fn ($a) => $a->where('exercice_id', $exerciceId)
+                ))
+                ->orderByRaw('date_fin is null, date_fin asc')
+                ->get()
+            : collect();
+ 
+        $clos = [StatutExecution::TERMINEE, StatutExecution::ANNULEE];
+        $ouvertes = $taches->reject(fn ($t) => in_array($t->statutExecution?->code, $clos, true));
+ 
+        // Taches du jour : ouvertes, en retard OU dont la periode couvre aujourd'hui
+        $duJour = $ouvertes->filter(function ($t) {
+            if ($t->estEnRetard()) {
+                return true;
+            }
+ 
+            return ($t->date_debut || $t->date_fin)
+                && (! $t->date_debut || $t->date_debut->lte(today()))
+                && (! $t->date_fin || $t->date_fin->gte(today()));
+        })->values();
+ 
+        $groupes = [
+            'jour' => $duJour,
+            'toutes' => $taches,
+            'terminees' => $taches->filter(fn ($t) => $t->statutExecution?->code === StatutExecution::TERMINEE)->values(),
+            'encours' => $ouvertes->filter(fn ($t) => $t->statutExecution?->code === StatutExecution::EN_COURS)->values(),
+            'attente' => $ouvertes->reject(fn ($t) => $t->statutExecution?->code === StatutExecution::EN_COURS)->values(),
+        ];
+ 
+        $statutsExecution = StatutExecution::where('actif', true)->orderBy('code')->get();
+        $priorites = Priorite::where('actif', true)->orderBy('libelle')->get();
+        $exercices = Exercice::orderByDesc('annee')->get(); // selecteur d'exercice
+        $estAdmin = $this->estAdmin();
+        $personnel = auth()->user()?->personnel;
+        $justif = JustificationRetard::contexte(auth()->user(), $taches);
+ 
+        return view('feuille_de_route.mes_taches', compact('groupes', 'statutsExecution', 'priorites', 'estAdmin', 'personnel', 'exercices', 'exerciceId', 'exerciceDefautId', 'justif'));
+    }
+ 
+    /**
+     * Mise a jour rapide (priorite, statut, avancement) par un agent affecte ou un administrateur.
+     * Une tache terminee n'est plus modifiable, sauf par l'administrateur.
+     */
+    public function majRapideTache(Request $request, $id)
+    {
+        $tache = Tache::with('statutExecution')->findOrFail($id);
+        $user = auth()->user();
+        $admin = $this->estAdmin();
+ 
+        $estAffecte = $user?->personnel_id
+            && $tache->affectations()->where('personnel_id', $user->personnel_id)->exists();
+ 
+        if (! $admin && ! $estAffecte) {
+            return response()->json(['status' => false, 'message' => "Vous n'êtes pas affecté à cette tâche."], 403);
+        }
+ 
+        if (! $admin && $tache->statutExecution?->code === StatutExecution::TERMINEE) {
+            return response()->json(['status' => false, 'message' => 'Cette tâche est terminée : seul un administrateur peut la modifier.'], 422);
+        }
+ 
+        // Clôture en attente de validation : plus de modification tant que le supérieur n'a pas décidé (sauf lui, et l'administrateur)
+        if (! $admin && $tache->cloture_validation === 'a_valider' && ! \App\Support\ClotureTache::peutValider($tache, $user)) {
+            return response()->json(['status' => false, 'message' => "La clôture de cette tâche est en attente de validation de votre supérieur hiérarchique : elle ne peut plus être modifiée d'ici là."], 422);
+        }
+
+        $donnees = $request->validate([
+            'priorite_id' => ['nullable', 'exists:priorites,id'],
+            'statut_execution_id' => ['required', 'exists:statuts_execution,id'],
+            'avancement_pourcentage' => ['required', 'integer', 'min:0', 'max:100'],
+        ]);
+ 
+        // Mode "par sous-tâches" : avancement calculé, non modifiable ; sinon une tache terminee est a 100 %
+        if ($tache->exerciceTache()?->avancementParSousTaches()) {
+            $donnees['avancement_pourcentage'] = $tache->avancement_pourcentage;
+        } elseif (StatutExecution::find($donnees['statut_execution_id'])?->code === StatutExecution::TERMINEE) {
+            $donnees['avancement_pourcentage'] = 100;
+        }
+ 
+        // Validation de la clôture par le supérieur hiérarchique (Réglages > Clôture des tâches)
+        $champsCloture = [];
+        $soumission = false;
+        // Tâche gérée automatiquement par ses sous-tâches : c'est le dernier cochage qui déclenche la soumission (AvancementTache)
+        $auto = $tache->exerciceTache()?->avancementParSousTaches() && \App\Support\Reglages::get('sous_taches.statut_automatique') && $tache->sousTaches()->validees()->exists();
+        if (\App\Support\ClotureTache::active() && ! $auto && $tache->cloture_validation !== 'validee') {
+            $demandeTerminee = (int) $donnees['statut_execution_id'] === (int) StatutExecution::where('code', StatutExecution::TERMINEE)->value('id');
+            if ($demandeTerminee && ! \App\Support\ClotureTache::peutValider($tache, $user)) {
+                $donnees['statut_execution_id'] = StatutExecution::where('code', StatutExecution::EN_COURS)->value('id');
+                $donnees['avancement_pourcentage'] = min(99, (int) $donnees['avancement_pourcentage']);
+                if ($tache->cloture_validation !== 'a_valider') {
+                    $champsCloture = \App\Support\ClotureTache::champsSoumission($user?->id);
+                    $soumission = true;
+                }
+            } else {
+                $champsCloture = \App\Support\ClotureTache::pourStatutDirect($tache, (int) $donnees['statut_execution_id'], $user);
+            }
+        } elseif (\App\Support\ClotureTache::active() && ! $auto) {
+            $champsCloture = \App\Support\ClotureTache::pourStatutDirect($tache, (int) $donnees['statut_execution_id'], $user); // tâche validée remise en cours : validation retirée
+        }
+
+        $libelles = [
+            'priorite_id' => fn ($v) => $v ? Priorite::find($v)?->libelle : null,
+            'statut_execution_id' => fn ($v) => StatutExecution::find($v)?->libelle,
+            'avancement_pourcentage' => fn ($v) => $v.' %',
+        ];
+ 
+        foreach ($libelles as $champ => $formate) {
+            $avant = $tache->{$champ};
+            $apres = $donnees[$champ] ?? null;
+ 
+            if ((string) $avant !== (string) $apres) {
+                TacheHistorique::create([
+                    'tache_id' => $tache->id,
+                    'user_id' => $user?->id,
+                    'champ' => $champ,
+                    'ancienne_valeur' => $formate($avant),
+                    'nouvelle_valeur' => $formate($apres),
+                ]);
+            }
+        }
+ 
+        $tache->update($donnees + $champsCloture + ['derniere_mise_a_jour_le' => now()]);
+
+        AvancementTache::recalculer($tache, auth()->id());
+
+        if ($soumission) {
+            \App\Support\ClotureTache::apresSoumission($tache, $user?->id, 'mise à jour rapide');
+            $message = "Clôture soumise à la validation de votre supérieur hiérarchique : la tâche reste « En cours » jusqu'à sa décision.";
+            session()->flash('success', $message);
+
+            return response()->json(['status' => true, 'message' => $message, 'cloture_soumise' => true]);
+        }
+
+        return response()->json(['status' => true, 'message' => 'Tâche mise à jour.']);
+    }
+ 
+    /*
+    |--------------------------------------------------------------------------
+    | Detail d'une tache
+    |--------------------------------------------------------------------------
+    */
+ 
+    public function detailsTache($id)
+    {
+        $tache = Tache::with([
+            'actionMesurable.actionCle.axe.exercice',
+            'statutExecution', 'priorite', 'situationTemporelle',
+            'affectations.personnel.service',
+            'historiques.user',
+            'alertesEnvoyees.regleAlerte', 'alertesEnvoyees.canalNotification', 'alertesEnvoyees.personnel',
+            'justifications.demandeur.personnel', 'justifications.decideur.personnel',
+        ])->findOrFail($id);
+    
+        $am = $tache->actionMesurable;
+        $idsAm = ActionMesurable::where('action_cle_id', $am->action_cle_id)->pluck('id');
+        $nbTachesAm = Tache::where('action_mesurable_id', $am->id)->count();
+        $nbTachesAc = Tache::whereIn('action_mesurable_id', $idsAm)->count();
+    
+        // Évolution de l'avancement : points [horodatage ms, %] reconstitués depuis l'historique
+        $changements = $tache->historiques->where('champ', 'avancement_pourcentage')->sortBy('created_at')->values();
+        $evolution = [];
+        if ($changements->isNotEmpty()) {
+            $depart = $tache->created_at ?? $changements->first()->created_at;
+            $evolution[] = [$depart->timestamp * 1000, (int) $changements->first()->ancienne_valeur];
+            foreach ($changements as $h) {
+                $evolution[] = [$h->created_at->timestamp * 1000, (int) $h->nouvelle_valeur]; // "50 %" -> 50
+            }
+            $evolution[] = [now()->timestamp * 1000, (int) $tache->avancement_pourcentage];
+        }
+    
+        // Charge de chaque agent affecté (toutes ses tâches)
+        $statsPersonnel = Affectation::whereIn('personnel_id', $tache->affectations->pluck('personnel_id')->unique())
+            ->where('affectable_type', $tache->getMorphClass())
+            ->with('affectable.statutExecution')
+            ->get()
+            ->groupBy('personnel_id')
+            ->map(function ($affectations) {
+                $taches = $affectations->pluck('affectable')->filter()->unique('id');
+    
+                return [
+                    'total' => $taches->count(),
+                    'terminees' => $taches->filter(fn ($t) => $t->statutExecution?->code === StatutExecution::TERMINEE)->count(),
+                    'en_cours' => $taches->filter(fn ($t) => $t->statutExecution?->code === StatutExecution::EN_COURS)->count(),
+                    'retard' => $taches->filter(fn ($t) => $t->estEnRetard())->count(),
+                ];
+            });
+    
+        return view('feuille_de_route.tache-details', [
+            'tache' => $tache,
+            'directions' => $tache->directions(),
+            'rolesParId' => RoleAffectation::pluck('libelle', 'id'),
+            'statsPersonnel' => $statsPersonnel,
+            'nbTachesAm' => $nbTachesAm,
+            'nbTachesAc' => $nbTachesAc,
+            'evolution' => $evolution,
+            'justif' => JustificationRetard::contexte(auth()->user(), collect([$tache])),
+        ]);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Alerte (lecture seule - journal des alertes envoyees)
+    |--------------------------------------------------------------------------
+    */
+
+    public function alertes(Request $request)
+    {
+        $this->exigerProfils('ADMIN|DG');
+
+        $query = AlerteEnvoyee::with(['tache', 'regleAlerte', 'canalNotification', 'personnel'])
+            ->orderByDesc('envoye_le');
+
+        if ($request->filled('tache_id')) {
+            $query->where('tache_id', $request->input('tache_id'));
+        }
+        if ($request->filled('canal_notification_id')) {
+            $query->where('canal_notification_id', $request->input('canal_notification_id'));
+        }
+        if ($request->filled('date_debut')) {
+            $query->whereDate('envoye_le', '>=', $request->input('date_debut'));
+        }
+        if ($request->filled('date_fin')) {
+            $query->whereDate('envoye_le', '<=', $request->input('date_fin'));
+        }
+
+        $alertes = $query->paginate(30)->withQueryString();
+
+        $taches = Tache::orderBy('code')->get(['id', 'code', 'libelle']);
+        $canaux = \App\Models\CanalNotification::orderBy('libelle')->get();
+
+        return view('feuille_de_route.alerte', compact('alertes', 'taches', 'canaux'));
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Vue d'ensemble (lecture seule, hierarchie complete)
+    |--------------------------------------------------------------------------
+    */
+
+    public function vueEnsemble()
+    {
+        $axes = Axe::with([
+            'actionsCles' => fn ($q) => $q->orderBy('ordre'),
+            'actionsCles.actionsMesurables' => fn ($q) => $q->orderBy('ordre'),
+            'actionsCles.actionsMesurables.taches' => fn ($q) => $q->orderBy('ordre'),
+            'actionsCles.actionsMesurables.taches.statutExecution',
+        ])->orderBy('ordre')->get();
+
+        return view('feuille_de_route.vue_ensemble', compact('axes'));
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Charge de travail (vue direction generale, mise en page "project-details")
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Chaque tache est rangee dans UNE categorie : terminee, en retard, en cours, ou autres
+     * (non demarree, bloquee, suspendue, annulee). Une tache compte une fois par agent
+     * (quel que soit son role) et une fois par direction.
+     */
+    public function chargeDeTravail(Request $request)
+    {
+        $this->exigerProfils('ADMIN|DG|RD');
+
+        // Exercice : sans choix explicite, annee en cours ET actif (meme regle que les autres pages) ;
+        // "Tous" = parametre exercice_id vide.
+        $exerciceDefautId = $this->exerciceParDefaut();
+        $exerciceId = $request->has('exercice_id')
+            ? ($request->integer('exercice_id') ?: null)
+            : $exerciceDefautId;
+        $directionId = $request->integer('direction_id') ?: null;
+
+        // Périmètre : DG et admin voient tout ; le RD voit ses directions (principales ou associées)
+        // plus les tâches transversales où un agent de sa direction est responsable ou pilote.
+        $user = auth()->user();
+        $directionsAutorisees  = $user->hasRole('ADMIN|DG') ? null : $user->directionsDirigees()->all();
+        if ($directionsAutorisees  !== null && $directionId && ! in_array($directionId, $directionsAutorisees , true)) {
+            $directionId = null;
+        }
+
+        $taches = Tache::with([
+                'statutExecution',
+                'actionMesurable.actionCle',
+                'affectations.personnel.service.sousDirection.direction',
+                'affectations.personnel.service.directionDirecte',
+            ])
+            ->when($exerciceId, fn ($q) => $q->whereHas(
+                'actionMesurable.actionCle.axe',
+                fn ($a) => $a->where('exercice_id', $exerciceId)
+            ))
+            ->when($directionsAutorisees  !== null, fn ($q) => $q->parDirection($directionsAutorisees ))
+            ->get();
+
+        $roleResponsableId = RoleAffectation::where('code', RoleAffectation::RESPONSABLE)->value('id');
+        $codesClos = [StatutExecution::TERMINEE, StatutExecution::ANNULEE];
+
+        $categorie = function ($tache) {
+            $code = $tache->statutExecution?->code;
+
+            if ($code === StatutExecution::TERMINEE) {
+                return 'terminees';
+            }
+            if ($tache->estEnRetard()) {
+                return 'en_retard';
+            }
+
+            return $code === StatutExecution::EN_COURS ? 'en_cours' : 'autres';
+        };
+
+        // --- Agrégation par agent et par direction ---
+        $agents = [];
+        $directionsStats = [];
+        $idsTachesAffectees = [];
+
+        foreach ($taches as $tache) {
+            $cat = $categorie($tache);
+            $clos = in_array($tache->statutExecution?->code, $codesClos, true);
+
+            foreach ($tache->affectations->pluck('personnel')->filter()->unique('id') as $personnel) {
+                $direction = $personnel->service?->direction();
+
+                if ($directionId && $direction?->id !== $directionId) {
+                    continue;
+                }
+
+                $idsTachesAffectees[$tache->id] = true;
+
+                // Agent
+                $id = $personnel->id;
+                $agents[$id] ??= [
+                    'personnel' => $personnel,
+                    'total' => 0, 'terminees' => 0, 'en_cours' => 0, 'en_retard' => 0, 'autres' => 0,
+                    'somme_avancement' => 0, 'prochaine' => null,
+                ];
+                $agents[$id]['total']++;
+                $agents[$id][$cat]++;
+                $agents[$id]['somme_avancement'] += $tache->avancement_pourcentage;
+
+                if (! $clos && $tache->date_fin
+                    && (! $agents[$id]['prochaine'] || $tache->date_fin->lt($agents[$id]['prochaine']))) {
+                    $agents[$id]['prochaine'] = $tache->date_fin;
+                }
+
+                // Direction (une tache est comptee une seule fois par direction)
+                $cle = $personnel->service ? ($direction?->id ?? 'dg') : 'aucune';
+                $directionsStats[$cle] ??= [
+                    'libelle' => $direction?->nom ?? ($personnel->service ? 'Direction Générale' : 'Sans service'),
+                    'code' => $direction?->code ?? ($personnel->service ? 'DG' : '—'),
+                    'agents' => [], 'taches' => [],
+                ];
+                $directionsStats[$cle]['agents'][$personnel->id] = true;
+                $directionsStats[$cle]['taches'][$tache->id] = ['cat' => $cat, 'avancement' => $tache->avancement_pourcentage];
+            }
+        }
+
+        $agents = collect($agents)
+            ->map(function ($a) {
+                $a['avancement'] = $a['total'] ? (int) round($a['somme_avancement'] / $a['total']) : 0;
+
+                return $a;
+            })
+            ->sortBy([['en_retard', 'desc'], ['total', 'desc']])
+            ->values();
+
+        $directionsStats = collect($directionsStats)
+            ->map(function ($d) {
+                $t = collect($d['taches']);
+
+                return [
+                    'libelle' => $d['libelle'],
+                    'code' => $d['code'],
+                    'agents' => count($d['agents']),
+                    'total' => $t->count(),
+                    'terminees' => $t->where('cat', 'terminees')->count(),
+                    'en_cours' => $t->where('cat', 'en_cours')->count(),
+                    'en_retard' => $t->where('cat', 'en_retard')->count(),
+                    'autres' => $t->where('cat', 'autres')->count(),
+                    'avancement' => $t->count() ? (int) round($t->avg('avancement')) : 0,
+                ];
+            })
+            ->sortByDesc('total')
+            ->values();
+
+        // --- Perimetre affiche : toutes les taches, ou celles de la direction choisie ---
+        $tachesAffectees = $taches->whereIn('id', array_keys($idsTachesAffectees));
+        $perimetre = $directionId ? $tachesAffectees : $taches;
+
+        $compte = ['terminees' => 0, 'en_cours' => 0, 'en_retard' => 0, 'autres' => 0];
+        foreach ($perimetre as $t) {
+            $compte[$categorie($t)]++;
+        }
+
+        $sansResponsable = $perimetre->filter(
+            fn ($t) => $t->affectations->where('role_affectation_id', $roleResponsableId)->isEmpty()
+        );
+
+        $kpis = [
+            'agents' => $agents->count(),
+            'taches_affectees' => $tachesAffectees->count(),
+            'taches_total' => $taches->count(),
+            'en_retard' => $compte['en_retard'],
+            'avancement_moyen' => $perimetre->isNotEmpty() ? (int) round($perimetre->avg('avancement_pourcentage')) : 0,
+            'sans_responsable' => $sansResponsable->count(),
+        ];
+
+        $aujourdhui = today()->getTimestamp();
+        $retards = $perimetre->filter(fn ($t) => $t->estEnRetard())
+            ->sortBy('date_fin')
+            ->map(fn ($t) => ['tache' => $t, 'jours' => (int) round(($aujourdhui - $t->date_fin->getTimestamp()) / 86400)])
+            ->values();
+
+        // Echeances proches : non terminees, echeance entre aujourd'hui et J+30 (comme la 1re regle d'alerte)
+        $horizon = 30;
+        $limite = today()->addDays($horizon)->getTimestamp();
+
+        $proches = $perimetre
+            ->filter(fn ($t) => $t->date_fin
+                && ! in_array($t->statutExecution?->code, $codesClos, true)
+                && $t->date_fin->getTimestamp() >= $aujourdhui
+                && $t->date_fin->getTimestamp() <= $limite)
+            ->sortBy('date_fin')
+            ->map(fn ($t) => ['tache' => $t, 'jours' => (int) round(($t->date_fin->getTimestamp() - $aujourdhui) / 86400)])
+            ->values();
+
+        // Taches en cours (pas en retard), echeance la plus proche d'abord, sans echeance en dernier
+        $enCours = $perimetre
+            ->filter(fn ($t) => $categorie($t) === 'en_cours')
+            ->sortBy(fn ($t) => [$t->date_fin ? 0 : 1, $t->date_fin?->timestamp ?? 0, $t->code])
+            ->map(fn ($t) => ['tache' => $t])
+            ->values();
+
+
+        $kpis['en_cours'] = $compte['en_cours'];
+        $kpis['proches_30'] = $proches->count();
+        $kpis['proches_15'] = $proches->where('jours', '<=', 15)->count();
+        $kpis['proches_7'] = $proches->where('jours', '<=', 7)->count();
+
+        $sansResponsableListe = $sansResponsable
+            ->sortBy(fn ($t) => [$t->date_fin ? 0 : 1, $t->date_fin?->timestamp ?? 0, $t->code])
+            ->take(15)
+            ->values();
+
+        $activite = $perimetre->filter(fn ($t) => $t->derniere_mise_a_jour_le)
+            ->sortByDesc('derniere_mise_a_jour_le')
+            ->take(12)
+            ->values();
+
+        // --- Donnees des graphiques (lues par public/assets/js/charge-travail.js) ---
+        $libelles = ['terminees' => 'Terminées', 'en_cours' => 'En cours', 'en_retard' => 'En retard', 'autres' => 'Autres'];
+        $couleurs = ['terminees' => '#2E7D5B', 'en_cours' => '#2B6CB0', 'en_retard' => '#A73B34', 'autres' => '#B4B2A9'];
+
+        $graphiques = [
+            'donut' => [
+                'labels' => array_values($libelles),
+                'series' => array_values($compte),
+                'colors' => array_values($couleurs),
+            ],
+            'agents' => $this->seriesEmpilees(
+                $agents->take(12), fn ($a) => $a['personnel']->nomComplet(), $libelles, $couleurs
+            ),
+            'directions' => $this->seriesEmpilees(
+                $directionsStats, fn ($d) => $d['code'], $libelles, $couleurs
+            ),
+        ];
+
+        $exercice = $exerciceId ? Exercice::find($exerciceId) : null;
+        $directions = Direction::orderBy('nom')->when($directionsAutorisees  !== null, fn ($q) => $q->whereIn('id', $directionsAutorisees ))->get();
+        $exercices = Exercice::orderByDesc('annee')->get();
+
+        return view('feuille_de_route.charge_travail', compact(
+            'agents', 'directionsStats', 'kpis', 'retards', 'proches', 'enCours', 'horizon', 'sansResponsableListe', 'activite', 'graphiques',
+            'exercice', 'directions', 'exercices', 'exerciceId', 'exerciceDefautId', 'directionId', 'roleResponsableId'
+        ));
+    }
+
+    /**
+     * Series "empilees" pour un graphique en barres : une serie par categorie, une valeur par ligne.
+     */
+    private function seriesEmpilees($lignes, callable $nom, array $libelles, array $couleurs): array
+    {
+        $lignes = collect($lignes)->values();
+
+        return [
+            'categories' => $lignes->map($nom)->all(),
+            'series' => collect($libelles)->map(fn ($libelle, $cle) => [
+                'name' => $libelle,
+                'data' => $lignes->map(fn ($l) => $l[$cle])->all(),
+            ])->values()->all(),
+            'colors' => array_values($couleurs),
+        ];
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Helpers partages (affectations polymorphiques)
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Remplace toutes les affectations d'un modele (ActionCle, ActionMesurable ou Tache)
+     * par celles soumises dans le formulaire : ['role_affectation_id' => [personnel_id, ...]].
+     */
+    private function syncAffectations($model, array $affectationsParRole): void
+    {
+        $model->affectations()->delete();
+
+        foreach ($affectationsParRole as $roleId => $personnelIds) {
+            foreach ((array) $personnelIds as $personnelId) {
+                if ($personnelId) {
+                    $model->affectations()->create([
+                        'personnel_id' => $personnelId,
+                        'role_affectation_id' => $roleId,
+                    ]);
+                }
+            }
+        }
+    }
+
+    /**
+     * Regroupe les affectations existantes d'un modele par role, pour le prechargement JS :
+     * ['3' => [12, 7], '4' => [12]] (role_affectation_id => [personnel_id, ...])
+     */
+    private function affectationsParRole($model): array
+    {
+        return $model->affectations
+            ->groupBy('role_affectation_id')
+            ->map(fn ($groupe) => $groupe->pluck('personnel_id'))
+            ->toArray();
+    }
+}

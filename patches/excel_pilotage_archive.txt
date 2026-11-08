@@ -1,0 +1,20 @@
+// ===== app/Support/ExportPilotage.php =====
+// 1) enteteTableau() : remplacer tout le corps par une ligne
+    private static function enteteTableau(Worksheet $f, int $ligne, array $titres): void
+    {
+        ExportExcel::styleEntete($f, $ligne, count($titres));
+        $f->fromArray($titres, null, 'A'.$ligne);
+    }
+
+// 2) feuille() : ajouter ces 2 lignes juste avant la dernière accolade de la méthode
+        ExportExcel::corps($f, 2, max(2, count($lignes) + 1), count($titres));
+        $f->setShowGridlines(false);
+
+// 3) excel() : remplacer  $f->getStyle('A1')->getFont()->setBold(true)->setSize(15);  par
+        ExportExcel::styleTitre($f, 'A1', 16);
+        $f->setShowGridlines(false);
+
+// ===== app/Support/ArchiveExercice.php, méthode feuille() =====
+// Remplacer le bloc  $feuille->getStyle("A1:{$derniere}1")->applyFromArray([ ... '1F4E79' ... ]);  par
+        ExportExcel::styleEntete($feuille, 1, count($entetes));
+        ExportExcel::corps($feuille, 2, max(count($lignes) + 1, 2), count($entetes));

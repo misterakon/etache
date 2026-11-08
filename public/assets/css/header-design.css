@@ -1,0 +1,93 @@
+/* =====================================================================
+   En-tête (.page-header) : dégradé à trois niveaux + motif sur les 70 % du centre
+   À charger APRÈS les feuilles de style du thème (dans le <head> du layout).
+
+   Réglages :
+     --h-g1  gauche  (le plus foncé)
+     --h-g2  milieu
+     --h-g3  droite  (le plus clair, mais assez foncé pour que le texte blanc reste lisible : contraste >= 4,5)
+     --h-motif: none;   retire le motif
+
+   Variantes (remplacer les 3 valeurs ci-dessous) :
+     Prune      : #370350 / #6B2A82 / #A24EA6
+     Vert-bleu  : #064E57 / #0E7C86 / #12828C
+   ===================================================================== */
+
+.page-header {
+  --h-g1: #b92d03a4;   /* bleu nuit */
+  --h-g2: #ffffffb7;
+  --h-g3: #00660ed3;
+
+  /* Motif de points (SVG intégré, aucune image à charger) */
+  --h-motif: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18'%3E%3Ccircle cx='3' cy='3' r='1.6' fill='%23fff' fill-opacity='.40'/%3E%3C/svg%3E");
+
+  background-color: var(--h-g2);
+  /* De haut en bas : voile gauche et voile droit (ils effacent le motif sur 15 % de chaque bord, il reste donc
+     pleinement visible sur les 70 % du centre), motif, halo lumineux, dégradé à trois niveaux. */
+  background-image:
+    linear-gradient(90deg, var(--h-g1) 0%, transparent 15%),
+    linear-gradient(270deg, var(--h-g3) 0%, transparent 15%),
+    var(--h-motif),
+    radial-gradient(ellipse 38% 150% at 94% -35%, rgba(255, 255, 255, .15), transparent 72%),
+    linear-gradient(100deg, var(--h-g1) 0%, var(--h-g2) 55%, var(--h-g3) 100%);
+  background-size: 100% 100%, 100% 100%, auto, auto, auto;
+  background-repeat: no-repeat, no-repeat, repeat, no-repeat, no-repeat;
+  background-position: center;
+}
+
+/* ---------------------------------------------------------------------
+   Lisibilité sur fond foncé. Seuls les éléments de la barre sont touchés :
+   les menus déroulants (profil, notifications) gardent leurs couleurs d'origine.
+   --------------------------------------------------------------------- */
+
+/* Logo : sur une pastille blanche, quelles que soient ses couleurs */
+.page-header .header-logo-wrapper { background: transparent; }
+.page-header .header-logo-wrapper .logo-wrapper a {
+  display: inline-flex; align-items: center; padding: 5px 14px; border-radius: 12px;
+  background: #fff; box-shadow: 0 4px 12px rgba(0, 0, 0, .18);
+}
+
+/* Icônes de la barre : passées en blanc (le filtre marche pour une icône en trait comme pleine) */
+.page-header .toggle-sidebar svg,
+.page-header .fullscreen-body svg,
+.page-header .mode svg,
+.page-header .notification-box > svg { filter: brightness(0) invert(1); }
+
+/* Profil */
+.page-header .profile-media .profile-content span { color: #fff; font-weight: 600; }
+.page-header .profile-media .profile-content p,
+.page-header .profile-media .profile-content p i { color: rgba(255, 255, 255, .84); }
+.page-header .profile-media img { box-shadow: 0 0 0 2px rgba(255, 255, 255, .55); }
+
+/* Lisibilité : les textes secondaires gris clair du thème passent à un gris très foncé (hors mode sombre) */
+body:not(.dark-only) .c-o-light,
+body:not(.dark-only) .text-muted,
+body:not(.dark-only) .f-light { color: #374151 !important; opacity: 1 !important; }
+
+/* ==========================================================================
+   Menu principal : page en cours (script public/assets/js/menu-actif.js)
+   Couleurs du logo DGEPN : orange #F26A0F, bleu #033074, vert #009E60.
+   ========================================================================== */
+
+/* Rubrique active (barre bleue) : pastille orange, texte blanc, filet vert dessous */
+.sidebar-wrapper li.sidebar-list > a.sidebar-link.menu-actif {
+  position: relative; color: #fff !important; border-radius: 9px;
+  background: linear-gradient(135deg, #F26A0F, #FF9A3D) !important; box-shadow: 0 8px 16px -8px rgba(242, 106, 15, .85);
+}
+.sidebar-wrapper li.sidebar-list > a.sidebar-link.menu-actif::after {
+  content: ""; position: absolute; left: 16px; right: 16px; bottom: -5px; height: 3px; border-radius: 3px; background: #009E60;
+}
+.sidebar-wrapper li.sidebar-list > a.sidebar-link.menu-actif svg,
+.sidebar-wrapper li.sidebar-list > a.sidebar-link.menu-actif span,
+.sidebar-wrapper li.sidebar-list > a.sidebar-link.menu-actif i { color: #fff !important; fill: #fff; stroke: #fff; }
+
+/* Sous-menus : textes lisibles, page active = texte bleu en gras, barre orange à gauche, fond orangé léger */
+.sidebar-wrapper .sidebar-submenu li > a { color: #1F2937 !important; font-weight: 500; transition: background .15s, color .15s; }
+.sidebar-wrapper .sidebar-submenu li > a:hover { color: #F26A0F !important; }
+.sidebar-wrapper .sidebar-submenu li > a.menu-actif {
+  color: #033074 !important; font-weight: 700 !important; border-radius: 8px;
+  background: linear-gradient(90deg, rgba(242, 106, 15, .16), rgba(242, 106, 15, .03)); box-shadow: inset 4px 0 0 #F26A0F;
+}
+/* Groupe de sous-menu contenant la page active (ex. « Tâches » ou « Gestion du personnel ») : marqueur vert */
+.sidebar-wrapper .sidebar-submenu li > a.submenu-title.menu-actif { box-shadow: inset 4px 0 0 #009E60; background: linear-gradient(90deg, rgba(0, 158, 96, .15), rgba(0, 158, 96, .03)); }
+.sidebar-wrapper .sidebar-submenu .sidebar-submenu li > a.menu-actif { box-shadow: inset 4px 0 0 #F26A0F; }

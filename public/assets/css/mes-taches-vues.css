@@ -1,0 +1,81 @@
+/* Mes tâches › onglets « Toutes mes tâches » et « Statuts » (public/assets/css/mes-taches-vues.css)
+   Réutilise les tons .tl-* (tache-list / mes-taches) : --c = couleur, --c-soft = fond doux. */
+.mx-panneau { padding: 20px; border: 1px solid #D5E3F4; border-radius: 20px; background: #fff; box-shadow: 0 14px 30px -24px rgba(15, 42, 91, .45); font-family: 'Plus Jakarta Sans', sans-serif; }
+.dark-only .mx-panneau { background: #1d2530; border-color: #2c3849; }
+.mx-panneau .tl-attente { --c: #C77D0A; --c-soft: rgba(199, 125, 10, .14); }
+.mx-panneau .tl-encours { --c: #2B6CB0; --c-soft: rgba(43, 108, 176, .12); }
+.mx-panneau .tl-terminee { --c: #1F8A5B; --c-soft: rgba(31, 138, 91, .14); }
+.mx-panneau .tl-retard { --c: #A73B34; --c-soft: rgba(167, 59, 52, .12); }
+.mx-panneau .tl-neutre { --c: #5B6B84; --c-soft: rgba(91, 107, 132, .12); }
+
+/* ---- Toutes mes tâches ---- */
+.mx-tete { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
+.mx-tete h5 { margin: 0; font: 800 18px 'Plus Jakarta Sans', sans-serif; color: #0F1B33; }
+.mx-tete h5 em { display: inline-block; margin-left: 6px; padding: 0 10px; border-radius: 99px; background: #033074; color: #fff; font: 800 12.5px/22px 'Plus Jakarta Sans', sans-serif; font-style: normal; }
+.mx-tete p { margin: 2px 0 0; font: 500 13px 'Plus Jakarta Sans', sans-serif; color: #475569; }
+.mx-recherche { position: relative; display: block; width: 320px; max-width: 100%; margin: 0; }
+.mx-recherche i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #2B6CB0; font-size: 13px; }
+.mx-recherche input { width: 100%; height: 42px; padding: 0 14px 0 38px; border: 1.5px solid #BCD2EE; border-radius: 12px; background: #fff; font: 500 13.5px 'Plus Jakarta Sans', sans-serif; }
+.mx-recherche input:focus { outline: 0; border-color: #2B6CB0; box-shadow: 0 0 0 3px rgba(43, 108, 176, .15); }
+.mx-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid #E1EAF5; }
+.mx-chip { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 14px; border: 1.5px solid transparent; border-radius: 99px; background: var(--c-soft); color: var(--c); font: 700 12.5px 'Plus Jakarta Sans', sans-serif; cursor: pointer; transition: transform .15s, box-shadow .15s; }
+.mx-chip b { min-width: 22px; padding: 0 7px; border-radius: 99px; background: var(--c); color: #fff; font: 800 11.5px/20px 'Plus Jakarta Sans', sans-serif; text-align: center; }
+.mx-chip:hover { transform: translateY(-1px); }
+.mx-chip.actif { border-color: var(--c); box-shadow: 0 6px 12px -8px var(--c); }
+.mx-liste { display: flex; flex-direction: column; gap: 10px; }
+.mx-ligne { display: grid; grid-template-columns: 62px minmax(0, 1fr) 190px auto; align-items: center; gap: 16px; padding: 12px 16px 12px 12px; border: 1px solid #D5E3F4; border-left: 4px solid var(--c); border-radius: 16px; background: #fff; transition: transform .15s, box-shadow .15s; }
+.mx-ligne:hover { transform: translateY(-2px); box-shadow: 0 16px 26px -18px rgba(15, 42, 91, .6); }
+.mx-ligne[hidden] { display: none; }
+.mx-date { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 62px; height: 66px; border-radius: 14px; background: linear-gradient(160deg, var(--c), color-mix(in srgb, var(--c) 70%, #000)); color: #fff !important; text-decoration: none !important; text-align: center; line-height: 1.15; }
+.mx-date strong { font-size: 22px; font-weight: 700; } .mx-date b { font-size: 11.5px; letter-spacing: .06em; } .mx-date small { font-size: 9.5px; opacity: .9; } .mx-date i { font-size: 18px; margin-bottom: 2px; }
+.mx-corps { min-width: 0; }
+.mx-titre { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; }
+.mx-code { padding: 2px 9px; border-radius: 8px; background: var(--c-soft); color: var(--c) !important; font: 800 12.5px 'Plus Jakarta Sans', sans-serif; text-decoration: none !important; }
+.mx-libelle { margin: 4px 0 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font: 600 14px/1.4 'Plus Jakarta Sans', sans-serif; color: #0F1B33; }
+.mx-suivi { display: flex; flex-direction: column; gap: 6px; }
+.mx-prio { font: 600 12px 'Plus Jakarta Sans', sans-serif; color: #475569; }
+.mx-barre { display: flex; align-items: center; gap: 8px; }
+.mx-barre i { display: block; flex: 1; height: 7px; border-radius: 99px; background: var(--c-soft); overflow: hidden; }
+.mx-barre b { display: block; height: 100%; border-radius: 99px; background: var(--c); }
+.mx-barre span { min-width: 34px; text-align: right; font: 800 12px 'Plus Jakarta Sans', sans-serif; color: var(--c); }
+.mx-actions { display: flex; gap: 8px; }
+.mx-vide { margin: 0; padding: 28px 0; text-align: center; color: #64748B; font: 500 13.5px 'Plus Jakarta Sans', sans-serif; }
+.mx-vide[hidden] { display: none; }
+@media (max-width: 900px) { .mx-ligne { grid-template-columns: 56px minmax(0, 1fr); } .mx-suivi, .mx-actions { grid-column: 1 / -1; } }
+
+/* ---- Statuts ---- */
+.mx-tuiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 900px) { .mx-tuiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.mx-tuile { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--c) 28%, #fff); border-left: 4px solid var(--c); border-radius: 14px; background: color-mix(in srgb, var(--c) 6%, #fff); }
+.mx-tuile > i { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--c); color: #fff; font-size: 16px; }
+.mx-tuile b { display: block; font: 800 22px/1.1 'Plus Jakarta Sans', sans-serif; color: #0F1B33; }
+.mx-tuile span { font: 600 12.5px 'Plus Jakarta Sans', sans-serif; color: #475569; }
+.mx-repart { display: flex; gap: 3px; height: 8px; margin: 14px 0 18px; border-radius: 99px; overflow: hidden; background: #EEF3FA; }
+.mx-repart i { display: block; background: var(--c); }
+.mx-colonnes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
+@media (max-width: 1100px) { .mx-colonnes { grid-template-columns: minmax(0, 1fr); } }
+.mx-col { border: 1px solid #E1EAF5; border-radius: 18px; background: #F8FBFF; overflow: hidden; }
+.mx-col > header { display: flex; align-items: center; gap: 10px; padding: 14px 16px; background: #fff; border-bottom: 3px solid var(--c); }
+.mx-col__point { width: 11px; height: 11px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 4px var(--c-soft); }
+.mx-col > header h6 { flex: 1; margin: 0; font: 800 14.5px 'Plus Jakarta Sans', sans-serif; color: #0F1B33; }
+.mx-col > header b { min-width: 26px; padding: 0 9px; border-radius: 99px; background: var(--c-soft); color: var(--c); font: 800 12px/24px 'Plus Jakarta Sans', sans-serif; text-align: center; }
+.mx-col__corps { display: flex; flex-direction: column; gap: 10px; padding: 12px; }
+.mx-carte { display: block; padding: 12px 14px; border: 1px solid #D5E3F4; border-radius: 14px; background: #fff; text-decoration: none !important; transition: transform .15s, box-shadow .15s; }
+.mx-carte:hover { transform: translateY(-2px); box-shadow: 0 14px 22px -16px rgba(15, 42, 91, .6); }
+.mx-carte__haut { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.mx-carte p { margin: 8px 0 2px; font: 600 13.5px/1.4 'Plus Jakarta Sans', sans-serif; color: #0F1B33; }
+.mx-carte small { display: block; margin-bottom: 8px; font: 500 11.5px 'Plus Jakarta Sans', sans-serif; color: #64748B; }
+.mx-carte .mx-barre { margin-bottom: 8px; }
+.mx-carte__pied { font: 600 12px 'Plus Jakarta Sans', sans-serif; color: #475569; } .mx-carte__pied i { margin-right: 4px; color: var(--c); }
+
+/* ---- Statuts : sous-onglets ---- */
+.mx-onglets { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 18px; border-bottom: 2px solid #E1EAF5; }
+.mx-onglet { position: relative; display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px; border: 0; background: transparent; color: #374151; font: 700 13.5px 'Plus Jakarta Sans', sans-serif; cursor: pointer; }
+.mx-onglet i { font-size: 13px; opacity: .85; }
+.mx-onglet em { min-width: 22px; padding: 0 7px; border-radius: 99px; background: #E8EEF7; color: #0F3A85; font: 800 11.5px/20px 'Plus Jakarta Sans', sans-serif; font-style: normal; text-align: center; }
+.mx-onglet::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: -2px; height: 3px; border-radius: 3px; background: transparent; }
+.mx-onglet:hover { color: #033074; }
+.mx-onglet.actif { color: #033074; } .mx-onglet.actif::after { background: #2B6CB0; } .mx-onglet.actif em { background: #033074; color: #fff; }
+.mx-onglet--attente.actif::after { background: #C77D0A; } .mx-onglet--attente.actif em { background: #C77D0A; }
+.mx-onglet--terminees.actif::after { background: #1F8A5B; } .mx-onglet--terminees.actif em { background: #1F8A5B; }
+.mx-onglet--retard em { background: #FBE7E5; color: #A73B34; } .mx-onglet--retard.actif::after { background: #A73B34; } .mx-onglet--retard.actif em { background: #A73B34; color: #fff; }

@@ -1,0 +1,82 @@
+/* ==========================================================================
+   Tableaux de liste (axes, actions clés, actions mesurables, paramètres, comptes, fonctions...)
+   Objectif : voir tout le tableau d'un coup, sans défilement horizontal, avec le bouton « Ajouter »
+   à une place claire (en haut à droite de la carte).
+   S'applique aux pages qui utilisent .dom-source-data et .btn-flottant-centre (thème).
+   ========================================================================== */
+
+/* 1. Plus de défilement horizontal : le thème imposait des largeurs minimales aux premières colonnes */
+.dom-source-data { overflow-x: visible !important; }
+.dom-source-data thead th,
+.dom-source-data tbody td { min-width: 0 !important; }
+.dom-source-data table.dataTable,
+.dom-source-data table { width: 100% !important; table-layout: auto; }
+
+/* 2. Les textes passent à la ligne au lieu de s'étirer ; les actions restent groupées à droite */
+.dom-source-data table.dataTable thead th,
+.dom-source-data table.dataTable tbody td { white-space: normal !important; word-break: break-word; vertical-align: middle; }
+.dom-source-data table.dataTable thead th { padding-right: 24px; }
+.dom-source-data table.dataTable tbody td:last-child,
+.dom-source-data table.dataTable thead th:last-child { width: 1%; white-space: nowrap !important; }
+.dom-source-data table.dataTable td .flex.gap-2 { flex-wrap: nowrap; }
+.dom-source-data table.dataTable td .tl-badge,
+.dom-source-data table.dataTable td .badge { margin: 2px 4px 2px 0; white-space: normal; }
+
+/* 3. Bouton « Ajouter » : en haut à droite de la carte, au lieu de flotter au centre au-dessus du tableau */
+.card > .btn-flottant-centre { position: static; display: inline-flex; align-items: center; gap: 8px; width: auto; margin: 18px 22px 0 auto; float: right; z-index: 1;
+  padding: 10px 20px; border-radius: 12px; font-weight: 600; letter-spacing: .02em; box-shadow: 0 12px 20px -12px rgba(3, 48, 116, .9); }
+.card > .btn-flottant-centre + .card-body { clear: both; }
+.card > .btn-flottant-centre i { font-size: 14px; }
+
+/* 4. Champs du tableau (nombre de lignes, recherche) plus lisibles */
+.dom-source-data .dataTables_wrapper .dataTables_filter input,
+.dom-source-data .dataTables_wrapper .dataTables_length select { border-radius: 10px; }
+.dom-source-data .dataTables_wrapper .dataTables_info { color: #374151; }
+
+@media (max-width: 767px) {
+  .card > .btn-flottant-centre { float: none; margin: 14px 16px 0; width: calc(100% - 32px); justify-content: center; }
+}
+
+/* ==========================================================================
+   Barre de filtres des listes (feuille_de_route/_filtres) : carte dégradée, champs lisibles
+   ========================================================================== */
+details.vt-filtres.card { padding: 0 !important; border: 1px solid #D5E3F4; border-radius: 18px; overflow: hidden; box-shadow: 0 10px 24px -20px rgba(15, 42, 91, .5); background: #fff; }
+details.vt-filtres > summary { display: flex; align-items: center; gap: 10px; padding: 13px 20px; list-style: none; cursor: pointer; font: 700 15px 'Plus Jakarta Sans', sans-serif; color: #0F1B33;
+  background: linear-gradient(100deg, #FFFFFF 0%, #DDF0FB 55%, #A9D8F3 100%); }
+details.vt-filtres > summary::-webkit-details-marker { display: none; }
+details.vt-filtres > summary i { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: #fff; border: 1px solid #D5E3F4; color: #2B6CB0; font-size: 13px; }
+details.vt-filtres > summary::after { content: ''; width: 9px; height: 9px; margin: 0 4px 3px auto; border-right: 2.5px solid #0F3A85; border-bottom: 2.5px solid #0F3A85; transform: rotate(45deg); transition: transform .2s; }
+details.vt-filtres[open] > summary::after { transform: rotate(225deg); margin-bottom: -3px; }
+details.vt-filtres > form { margin: 0 !important; padding: 16px 20px 18px; border-top: 1px solid #E3EAF5; }
+details.vt-filtres .form-label { margin-bottom: 4px; font: 700 11.5px 'Plus Jakarta Sans', sans-serif; text-transform: uppercase; letter-spacing: .05em; color: #374151; }
+details.vt-filtres .form-select, details.vt-filtres .form-control { height: 42px; border: 1.5px solid #BCD2EE; border-radius: 12px; color: #0F1B33; font-weight: 500; }
+details.vt-filtres .form-select:focus, details.vt-filtres .form-control:focus { border-color: #2B6CB0; box-shadow: 0 0 0 3px rgba(43, 108, 176, .22); }
+details.vt-filtres .form-select:disabled { background-color: #F1F5F9; color: #374151; }
+details.vt-filtres .form-check { display: inline-flex; align-items: center; gap: 8px; margin: 0 8px 0 0; padding: 8px 14px; border: 1.5px solid #BCD2EE; border-radius: 999px; font-weight: 600; font-size: 13.5px; color: #0F1B33; cursor: pointer; }
+details.vt-filtres .form-check .form-check-input { margin: 0; float: none; }
+details.vt-filtres .form-check:has(input:checked) { background: #FDECEF; border-color: #E11D48; color: #9F1239; }
+details.vt-filtres .btn { height: 42px; display: inline-flex; align-items: center; gap: 8px; border-radius: 12px; font-weight: 600; }
+details.vt-filtres .btn-secondary { background: #fff !important; border: 1.5px solid #BCD2EE !important; color: #0F3A85 !important; }
+.dark-only details.vt-filtres.card { background: #222B45; border-color: #2C3654; }
+.dark-only details.vt-filtres > summary { color: #EAF0FF; background: linear-gradient(135deg, #1B2540, #222B45); }
+.dark-only details.vt-filtres .form-label { color: #D5DEF5; }
+
+/* ==========================================================================
+   Barre d'actions en tête de carte (titre à gauche, boutons à droite) : page Exercice
+   ========================================================================== */
+.vt-barre-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 16px; padding: 16px 22px 0; }
+.vt-barre-actions__titre { display: flex; align-items: center; gap: 12px; }
+.vt-barre-actions__titre > i { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 12px; background: #EAF3FF; color: #2B6CB0; font-size: 18px; }
+.vt-barre-actions__titre strong { display: block; font: 700 16px 'Plus Jakarta Sans', sans-serif; color: #0F1B33; }
+.vt-barre-actions__titre small { font: 500 12.5px 'Plus Jakarta Sans', sans-serif; color: #374151; }
+.vt-barre-actions__boutons { display: flex; flex-wrap: wrap; gap: 10px; }
+.vt-btn { display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 18px; border: 1.5px solid transparent; border-radius: 12px; font: 600 13.5px 'Plus Jakarta Sans', sans-serif; cursor: pointer; text-decoration: none !important; transition: transform .15s, box-shadow .15s; }
+.vt-btn:hover { transform: translateY(-1px); }
+.vt-btn--primaire { background: linear-gradient(135deg, #033074, #2B6CB0); color: #fff !important; box-shadow: 0 12px 20px -12px rgba(3, 48, 116, .9); }
+.vt-btn--vert { background: #E7F7EE; border-color: #8FD3AC; color: #0B5A33 !important; }
+.dark-only .vt-barre-actions__titre strong { color: #EAF0FF; } .dark-only .vt-barre-actions__titre small { color: #D5DEF5; }
+@media (max-width: 575px) { .vt-barre-actions__boutons { width: 100%; } .vt-btn { flex: 1; justify-content: center; } }
+
+/* Bandeau titre (.cr-hero, .imp-hero) : un peu d espace sous le menu */
+/* La marge haute du bandeau fusionnerait avec celle de la page : on l'exprime en remplissage de la page */
+.page-body:has(> .container > .cr-hero:first-child), .page-body.imp-page { padding-top: 18px; }

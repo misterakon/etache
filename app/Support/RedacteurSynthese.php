@@ -1,0 +1,261 @@
+<?php
+
+namespace App\Support;
+
+use App\Models\SynthesePilotage;
+use App\Models\User;
+use Illuminate\Support\Facades\Http;
+use RuntimeException;
+
+/**
+ * Rédaction de la synthèse du pilotage.
+ *  - Modèles de phrases : toujours disponibles, aucun appel externe, résultat déterministe.
+ *  - IA (Claude) : seulement si activée dans les Réglages, avec une clé dans le .env et sous le plafond quotidien ;
+ *    en cas d'échec, repli automatique sur les modèles de phrases.
+ * Seuls des TOTAUX partent vers l'API : jamais l'objet d'un courrier, un nom d'agent, un libellé de tâche ou un document.
+ */
+class RedacteurSynthese
+{
+    private const SYSTEME = "Tu es un analyste de gestion de la performance. Tu rédiges, pour le Directeur Général d'une administration publique ivoirienne, la note de synthèse du suivi de la feuille de route. "
+        ."Tu t'appuies UNIQUEMENT sur les chiffres fournis en JSON. Règles : n'invente aucun chiffre, aucun nom, aucune cause ; si une information manque, dis-le ; reste factuel, sobre et professionnel ; "
+        .'emploie une forme impersonnelle (jamais le tutoiement) ; arrondis à une décimale ; les montants sont en francs CFA (FCFA) ; 450 mots au maximum. '
+        ."Structure OBLIGATOIRE, dans cet ordre, avec ces cinq titres exacts et aucun autre : « ## Situation d'ensemble » suivi d'un paragraphe de 3 à 5 phrases qui interprète les chiffres (écart entre attendu et réalisé, rythme, retards) sans les réciter tous ; "
+        ."« ## Points forts » avec 1 à 4 puces commençant par « - » ; « ## Points d'attention » avec 2 à 5 puces, du plus grave au moins grave ; « ## Recommandations » avec 3 à 5 puces d'actions concrètes, chacune commençant par un verbe à l'infinitif et reliée à un chiffre précis ; « ## Conclusion » suivi d'un paragraphe de 2 à 3 phrases qui résume le niveau de maîtrise de la situation et la priorité immédiate. "
+        ."Ne remplis jamais une section pour faire nombre : un fait banal n'est pas un point fort ; s'il n'y a aucun point fort notable, écris une seule puce « - Aucun point fort notable sur la période. ». "
+        ."Signale comme point d'attention tout problème de qualité des données (par exemple des tâches sans direction porteuse, une avancée nulle sur plusieurs mois). "
+        ."N'utilise ni tableau, ni émoji, ni autre mise en forme que ces titres et ces puces. Termine toujours par la section Conclusion.";
+
+    public static function iaDisponible(): bool
+    {
+        return (bool) Reglages::get('synthese.ia_active') && filled(config('synthese.cle'));
+    }
+
+    public static function quotaRestant(): int
+    {
+        $utilise = SynthesePilotage::where('source', 'ia')->whereDate('created_at', today())->count();
+
+        return max(0, (int) Reglages::get('synthese.generations_par_jour') - $utilise);
+    }
+
+    /** Données transmises à l'IA : agrégats uniquement. */
+    public static function charge(array $a): array
+    {
+        $ligne = fn (array $r, string $cle) => [
+            $cle => $r['libelle'], 'taches' => $r['total'], 'terminees' => $r['terminees'], 'en_retard' => $r['en_retard'],
+            'retards_non_justifies' => $r['non_justifies'], 'avancement_moyen_pct' => $r['avancement'], 'taux_realisation_pct' => $r['taux'],
+        ];
+        $courrier = $a['courrier'];
+
+        return [
+            'unite_budget' => 'FCFA', 'perimetre' => $a['portee'], 'exercice' => (int) $a['exercice']->annee, 'periode' => $a['periode']['libelle'], 'date_du_jour' => today()->format('d/m/Y'),
+            'taches_ponctuelles_en_retard_hors_feuille_de_route' => $a['portee_type'] === 'axe' ? null : \App\Models\TachePonctuelle::enRetard()->when($a['portee_type'] === 'direction', fn ($q) => $q->where('direction_id', $a['portee_id']))->count(),
+            'situation' => $a['situation'], 'periode_chiffres' => $a['periode_chiffres'], 'taches_annulees' => $a['annulees'],
+            'par_axe' => array_map(fn ($r) => $ligne($r, 'axe'), $a['par_axe']),
+            'par_direction' => array_map(fn ($r) => $ligne($r, 'direction'), $a['par_direction']),
+            'evolution_mensuelle' => array_map(fn ($p) => ['mois' => $p['mois'], 'attendu_pct' => $p['attendu'], 'realise_pct' => $p['realise']], $a['courbe']),
+            'courrier' => $courrier ? ['recus_annee' => $courrier['total_recus'], 'departs_annee' => $courrier['total_departs'], 'diligences_ouvertes' => $courrier['diligences_ouvertes'],
+                'diligences_en_retard' => $courrier['diligences_en_retard'], 'diligences_traitees' => $courrier['diligences_traitees'], 'delai_moyen_jours' => $courrier['delai_moyen']] : null,
+        ];
+    }
+
+    private static function n($v, int $d = 1): string
+    {
+        return number_format((float) $v, $d, ',', "\u{202F}");
+    }
+
+    // ------------------------------------------------------------------ modèles de phrases
+    public static function modele(array $a): string
+    {
+        $s = $a['situation'];
+        $p = $a['periode_chiffres'];
+        $n = fn ($v, $d = 1) => self::n($v, $d);
+        $pl = fn (int $k, string $um, string $pluriel = 's') => $k.' '.$um.($k > 1 ? $pluriel : '');
+
+        // --- Situation d'ensemble
+        $txt = 'Au '.today()->format('d/m/Y').", le périmètre « {$a['portee']} » compte ".$pl($s['total'], 'tâche').' pour l\'exercice '.$a['exercice']->annee.'. '
+            .($s['total'] ? $s['terminees'].' tâche(s) terminée(s) ('.$n($s['taux']).' %), '.$s['en_cours'].' en cours et '.$s['non_demarrees'].' non démarrée(s)'
+                .(($s['bloquees'] + $s['suspendues']) ? ', dont '.($s['bloquees'] + $s['suspendues']).' bloquée(s) ou suspendue(s)' : '').'. L\'avancement moyen s\'établit à '.$n($s['avancement']).' %.' : 'Aucune tâche n\'est enregistrée.');
+        $dernier = collect($a['courbe'])->filter(fn ($c) => $c['realise'] !== null)->last();
+        if ($dernier && $s['total']) {
+            $ecart = $dernier['realise'] - $dernier['attendu'];
+            $txt .= " À fin {$dernier['mois']}, ".$n($dernier['attendu']).' % des tâches devaient être achevées pour '.$n($dernier['realise']).' % effectivement terminées ('
+                .($ecart >= 0 ? 'avance' : 'retard').' de '.$n(abs($ecart)).(abs($ecart) >= 2 ? ' points' : ' point').').';
+        }
+        $txt .= ' Sur la période « '.$a['periode']['libelle'].' », '.$p['echeances'].' échéance'.($p['echeances'] > 1 ? 's étaient prévues' : ' était prévue').' ; '.$p['terminees'].' tâche(s) terminée(s) sur la période'
+            .($p['terminees'] ? ', dont '.$p['a_temps'].' dans les délais' : '').($p['taux_respect'] !== null ? ' (taux de respect des échéances : '.$n($p['taux_respect']).' %)' : '').'. '
+            .$pl($p['retard_fin_periode'], 'tâche').' reste'.($p['retard_fin_periode'] > 1 ? 'nt' : '').' en retard à la fin de la période.';
+
+        // --- Points forts
+        $forts = [];
+        $axes = collect($a['par_axe'])->filter(fn ($r) => $r['total'] > 0);
+        foreach ($axes->sortByDesc('taux')->take(2)->values()->all() as $i => $r) {
+            if ($i === 0 && $r['taux'] > 0) {
+                $forts[] = "L'axe « {$r['libelle']} » est le plus avancé : ".$n($r['taux']).' % de tâches terminées pour un avancement moyen de '.$n($r['avancement']).' %.';
+            } elseif ($i === 1 && $r['taux'] >= 40) {
+                $forts[] = "L'axe « {$r['libelle']} » progresse également bien : ".$n($r['taux']).' % de tâches terminées.';
+            }
+        }
+        $sansRetard = collect($a['par_direction'])->filter(fn ($r) => $r['total'] > 0 && $r['en_retard'] === 0)->pluck('libelle')->take(4);
+        if ($sansRetard->isNotEmpty()) {
+            $forts[] = 'Aucune tâche en retard pour : '.$sansRetard->implode(', ').'.';
+        }
+        if (($p['taux_respect'] ?? 0) >= 80) {
+            $forts[] = 'Les échéances de la période sont bien tenues ('.$n($p['taux_respect']).' %).';
+        }
+        $forts = $forts ?: ['Aucun point fort particulier ne ressort des chiffres de la période.'];
+
+        // --- Points d'attention
+        $att = [];
+        $nbPonctuelles = $a['portee_type'] === 'axe' ? 0 : \App\Models\TachePonctuelle::enRetard()->when($a['portee_type'] === 'direction', fn ($q) => $q->where('direction_id', $a['portee_id']))->count();
+        if ($s['en_retard'] > 0) {
+            $att[] = $pl($s['en_retard'], 'tâche').' en retard, dont '.$s['non_justifies'].' sans justification valable.';
+        }
+        if ($nbPonctuelles > 0) {
+            $att[] = $pl($nbPonctuelles, 'tâche ponctuelle')." en retard (travail hors feuille de route, non compté dans l'avancement).";
+        }
+        $tops = collect($a['par_direction'])->filter(fn ($r) => $r['en_retard'] > 0)->sortByDesc('en_retard')->take(3);
+        if ($tops->isNotEmpty()) {
+            $att[] = 'Directions les plus concernées par les retards : '.$tops->map(fn ($r) => "{$r['libelle']} ({$r['en_retard']})")->implode(', ').'.';
+        }
+        $lents = $axes->filter(fn ($r) => $r['avancement'] < 40)->sortBy('avancement')->take(2);
+        foreach ($lents as $r) {
+            $att[] = "L'axe « {$r['libelle']} » progresse lentement : ".$n($r['avancement']).' % d\'avancement moyen.';
+        }
+        if (($s['bloquees'] + $s['suspendues']) > 0) {
+            $att[] = ($s['bloquees'] + $s['suspendues']).' tâche(s) sont bloquée(s) ou suspendue(s).';
+        }
+        if (($a['courrier']['diligences_en_retard'] ?? 0) > 0) {
+            $att[] = $pl($a['courrier']['diligences_en_retard'], 'diligence').' du courrier '.($a['courrier']['diligences_en_retard'] > 1 ? 'sont' : 'est').' en retard'
+                .($a['courrier']['delai_moyen'] !== null ? ' (délai moyen de traitement : '.$n($a['courrier']['delai_moyen']).' jours)' : '').'.';
+        }
+        $att = $att ?: ["Aucun point d'attention majeur ne ressort des chiffres."];
+
+        // --- Recommandations
+        $reco = [];
+        if ($s['non_justifies'] > 0) {
+            $reco[] = 'Relancer les responsables pour justifier ou reporter les '.$s['non_justifies'].' retard(s) non justifié(s).';
+        }
+        if ($tops->isNotEmpty()) {
+            $reco[] = 'Organiser un point de recadrage avec la direction « '.$tops->first()['libelle'].' », la plus concernée par les retards.';
+        }
+        if (($s['bloquees'] + $s['suspendues']) > 0) {
+            $reco[] = 'Lever les blocages identifiés sur les tâches bloquées ou suspendues, ou les réexaminer.';
+        }
+        if ($p['taux_respect'] !== null && $p['taux_respect'] < 70) {
+            $reco[] = 'Revoir la planification ou la charge des équipes : moins de 70 % des échéances de la période ont été tenues.';
+        }
+        if ($lents->isNotEmpty()) {
+            $reco[] = "Examiner les moyens alloués à l'axe « ".$lents->first()['libelle'].' ».';
+        }
+        $reco[] = "Demander la mise à jour de l'avancement des tâches avant le prochain point de suivi.";
+
+        $pct = $s['total'] ? round($s['en_retard'] / $s['total'] * 100) : 0;
+        $niveau = $pct >= 30 ? 'La situation est préoccupante' : ($pct >= 10 ? 'La situation appelle une vigilance particulière' : 'La situation est globalement maîtrisée');
+        $conclusion = $niveau.' : '.$s['en_retard'].' tâche(s) sur '.$s['total'].' sont en retard ('.$pct.' %), dont '.$s['non_justifies'].' sans justification. '
+            .($s['non_justifies'] > 0 ? "La priorité immédiate est de faire justifier ou reporter ces retards, puis de relancer l'avancement des tâches non démarrées." : 'La priorité est de maintenir le rythme et de sécuriser les prochaines échéances.');
+
+        return "## Situation d'ensemble\n".$txt."\n\n## Points forts\n- ".implode("\n- ", $forts)."\n\n## Points d'attention\n- ".implode("\n- ", $att)."\n\n## Recommandations\n- ".implode("\n- ", array_slice($reco, 0, 5))."\n\n## Conclusion\n".$conclusion;
+    }
+
+    // ------------------------------------------------------------------ IA
+    /** @throws RuntimeException */
+    public static function ia(array $donnees, string $modele): string
+    {
+        $derniere = null;
+        foreach ([6000, 12000] as $essai => $limite) {
+            $reponse = Http::timeout((int) config('synthese.timeout'))->retry(2, 1500, throw: false)->acceptJson()
+                ->withHeaders(['x-api-key' => (string) config('synthese.cle'), 'anthropic-version' => config('synthese.version')])
+                ->post(config('synthese.url'), [
+                    'model' => $modele, 'max_tokens' => $limite, 'system' => self::SYSTEME,
+                    'messages' => [['role' => 'user', 'content' => "Rédige la note de synthèse pour ce périmètre et cette période. Données (JSON) :\n".json_encode($donnees, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)]],
+                ]);
+
+            if ($reponse->failed()) {
+                throw new RuntimeException('API '.$reponse->status());
+            }
+            $texte = trim(collect($reponse->json('content', []))->where('type', 'text')->pluck('text')->implode("\n"));
+            $complet = $texte !== '' && str_contains($texte, 'Conclusion') && $reponse->json('stop_reason') !== 'max_tokens';
+            if ($complet) {
+                return $texte;
+            }
+            $derniere = $reponse->json('stop_reason') === 'max_tokens' ? 'réponse tronquée (limite de longueur)' : ($texte === '' ? 'réponse vide' : 'réponse incomplète');
+        }
+
+        throw new RuntimeException($derniere ?? 'réponse inexploitable');
+    }
+
+    /**
+     * Génère (ou réutilise) la synthèse d'une analyse. Réutilise celle du jour si les chiffres n'ont pas changé, sauf demande de régénération.
+     *
+     * @return array{synthese: SynthesePilotage, avertissement: ?string}
+     */
+    public static function generer(array $a, ?User $user, bool $forcer = false): array
+    {
+        $donnees = self::charge($a);
+        $iaPossible = self::iaDisponible() && self::quotaRestant() > 0;
+        $modeleIa = (string) Reglages::get('synthese.modele');
+        $empreinte = sha1(json_encode($donnees).'|'.($iaPossible ? $modeleIa : 'modele'));
+        $cle = ['exercice_id' => $a['exercice']->id, 'periode_type' => $a['periode']['type'], 'periode_valeur' => $a['periode']['valeur'], 'portee_type' => $a['portee_type'], 'portee_id' => $a['portee_id']];
+
+        if (! $forcer) {
+            $existante = SynthesePilotage::where($cle)->where('empreinte', $empreinte)->whereIn('source', ['ia', 'modele'])->whereDate('created_at', today())->latest('id')->first();
+            if ($existante) {
+                return ['synthese' => $existante, 'avertissement' => null];
+            }
+        }
+
+        $avertissement = null;
+        $source = 'modele';
+        $nomModele = null;
+        $texte = null;
+        if ($iaPossible) {
+            try {
+                $texte = self::ia($donnees, $modeleIa);
+                $source = 'ia';
+                $nomModele = $modeleIa;
+            } catch (\Throwable $e) {
+                report($e);
+                $avertissement = "L'IA est momentanément indisponible ({$e->getMessage()}) : la synthèse a été rédigée avec les modèles de phrases.";
+            }
+        } elseif ((bool) Reglages::get('synthese.ia_active')) {
+            $avertissement = ! filled(config('synthese.cle'))
+                ? "Aucune clé d'API n'est configurée sur le serveur (ANTHROPIC_API_KEY) : synthèse par modèles de phrases."
+                : 'Plafond quotidien de synthèses IA atteint : synthèse par modèles de phrases jusqu\'à demain.';
+        }
+        $texte ??= self::modele($a);
+
+        $synthese = SynthesePilotage::create($cle + ['contenu' => $texte, 'source' => $source, 'modele' => $nomModele, 'empreinte' => $empreinte, 'auteur_id' => $user?->id]);
+        Journal::noter('pilotage', 'synthese', "Synthèse du pilotage générée ({$a['portee']} · {$a['periode']['libelle']}) : ".$synthese->libelleSource(), $synthese);
+
+        return ['synthese' => $synthese, 'avertissement' => $avertissement];
+    }
+
+    /** Texte → HTML sûr : titres « ## », puces « - » et gras « ** » uniquement. */
+    public static function versHtml(string $texte): string
+    {
+        $html = '';
+        $liste = false;
+        $section = '';
+        foreach (preg_split('/\R/u', trim($texte)) as $ligne) {
+            $l = trim($ligne);
+            $gras = fn (string $t) => preg_replace('/\*\*(.+?)\*\*/u', '<strong>$1</strong>', e($t));
+            if ($l === '') {
+                continue;
+            }
+            if (preg_match('/^#{1,4}\s*(.+)$/u', $l, $m)) {
+                $t = mb_strtolower($m[1]);
+                $section = str_contains($t, 'attention') ? 'attention' : (str_contains($t, 'recommandation') ? 'reco' : (str_contains($t, 'forts') ? 'forts' : (str_contains($t, 'conclusion') ? 'conclusion' : '')));
+                $html .= ($liste ? '</ul>' : '').'<h4 class="syn-'.($section ?: 'texte').'">'.$gras($m[1]).'</h4>';
+                $liste = false;
+            } elseif (preg_match('/^[-•*]\s+(.+)$/u', $l, $m)) {
+                $html .= ($liste ? '' : '<ul class="syn-'.($section ?: 'texte').'">').'<li>'.$gras($m[1]).'</li>';
+                $liste = true;
+            } else {
+                $html .= ($liste ? '</ul>' : '').'<p class="syn-'.($section ?: 'texte').'">'.$gras($l).'</p>';
+                $liste = false;
+            }
+        }
+
+        return $html.($liste ? '</ul>' : '');
+    }
+}

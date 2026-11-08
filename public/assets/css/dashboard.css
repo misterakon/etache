@@ -1,0 +1,152 @@
+/* =====================================================================
+   Tableau de bord e-Tache : dégradés, cartes colorées, pastilles
+   Même palette que les autres pages (variables --tl-*).
+   Tout est limité à la page grâce à la classe .etache-dash : le thème n'est pas touché ailleurs.
+   ===================================================================== */
+
+:root {
+  --tl-encours:  #2B6CB0;   /* bleu   */
+  --tl-attente:  #C77D0A;   /* orange */
+  --tl-terminee: #2E7D5B;   /* vert   */
+  --tl-retard:   #A73B34;   /* rouge  */
+  --tl-avenir:   #6D5BD0;   /* violet */
+  --tl-neutre:   #5B6B84;   /* ardoise */
+  --tl-teal:     #0E7C86;
+
+  --tl-texte:      #1F2A37;
+  --tl-texte-doux: #374151;
+  --tl-surface:    #FFFFFF;
+  --tl-bordure:    rgba(31, 42, 55, .10);
+  --tl-ombre:       0 1px 2px rgba(16, 24, 40, .06), 0 4px 12px rgba(16, 24, 40, .06);
+  --tl-ombre-hover: 0 10px 26px rgba(16, 24, 40, .16);
+}
+.dark-only {
+  --tl-texte: #E5E7EB;
+  --tl-texte-doux: #9AA5B8;
+  --tl-surface: #262932;
+  --tl-bordure: rgba(255, 255, 255, .10);
+}
+
+.tl-encours  { --c: var(--tl-encours);  --c-soft: rgba(43, 107, 176, 0.075); }
+.tl-attente  { --c: var(--tl-attente);  --c-soft: rgba(199, 125, 10, .14); }
+.tl-terminee { --c: var(--tl-terminee); --c-soft: rgba(46, 125, 91, .12); }
+.tl-retard   { --c: var(--tl-retard);   --c-soft: rgba(167, 59, 52, .12); }
+.tl-avenir   { --c: var(--tl-avenir);   --c-soft: rgba(109, 91, 208, .12); }
+.tl-neutre   { --c: var(--tl-neutre);   --c-soft: rgba(91, 107, 132, .12); }
+.tl-teal     { --c: var(--tl-teal);     --c-soft: rgba(14, 124, 134, .12); }
+
+.tl-badge {
+  display: inline-flex; align-items: center; align-self: center; gap: 6px;
+  height: auto; padding: 2px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 600; line-height: 1.5; white-space: nowrap;
+  color: var(--c); background: var(--c-soft);
+}
+.tl-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--c); }
+.tl-badge.tl-solid { color: #fff; background: var(--c); }
+.tl-badge.tl-solid::before { background: #fff; }
+
+/* ---------------------------------------------------------------------
+   Titre de page : pastille de l'exercice affiché
+   --------------------------------------------------------------------- */
+.ed-chip {
+  display: inline-flex; align-items: center; gap: 6px; margin-left: 12px; padding: 3px 12px;
+  border-radius: 999px; vertical-align: middle; font-size: 12.5px; font-weight: 700;
+  color: var(--c); background: var(--c-soft);
+}
+
+/* ---------------------------------------------------------------------
+   Cartes : bandeau dégradé en haut, coins arrondis, ombre douce
+   (le fond de la carte reste celui du thème, mode sombre compris)
+   --------------------------------------------------------------------- */
+.etache-dash .card {
+  border: 1px solid var(--tl-bordure); border-radius: 16px; box-shadow: var(--tl-ombre);
+  background-image: linear-gradient(90deg, var(--tl-encours), var(--tl-terminee), var(--tl-attente));
+  background-size: 100% 3px; background-repeat: no-repeat; background-position: top;
+}
+.etache-dash .card-header .header-top h5 { display: flex; align-items: center; gap: 10px; }
+.ed-ico {
+  width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 15px; color: var(--c); background: var(--c-soft);
+}
+
+/* ---------------------------------------------------------------------
+   Les 6 compteurs : dégradé vertical, soutenu en haut puis de plus en plus clair vers le bas
+   (texte foncé de la même teinte, sans liseré). Pour ajuster : 1re couleur = le haut, 2e = le bas.
+   --------------------------------------------------------------------- */
+.etache-dash .card.ed-stat {
+  position: relative; overflow: hidden; border: 0; border-radius: 16px;
+  background-size: auto; background-repeat: no-repeat; background-position: center;
+  box-shadow: 0 6px 16px rgba(16, 24, 40, .10);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.etache-dash .card.ed-stat.tl-attente  { --deep: #8A5200; background-image: linear-gradient(180deg, #F8CF94 0%, #FFF7EA 100%); }
+.etache-dash .card.ed-stat.tl-terminee { --deep: #1B6446; background-image: linear-gradient(180deg, #9ADBBB 0%, #EEF9F3 100%); }
+.etache-dash .card.ed-stat.tl-encours  { --deep: #1B528F; background-image: linear-gradient(180deg, #A6CBF2 0%, #EEF5FD 100%); }
+.etache-dash .card.ed-stat.tl-retard   { --deep: #8A2C27; background-image: linear-gradient(180deg, #F2AAA5 0%, #FDEEED 100%); }
+.etache-dash .card.ed-stat.tl-avenir   { --deep: #4636A8; background-image: linear-gradient(180deg, #C3B9F6 0%, #F3F1FE 100%); }
+.etache-dash .card.ed-stat.tl-teal     { --deep: #09616A; background-image: linear-gradient(180deg, #8AD3DA 0%, #E9F7F8 100%); }
+.etache-dash .card.ed-stat:hover { transform: translateY(-3px); box-shadow: 0 12px 24px rgba(16, 24, 40, .16); }
+.etache-dash .ed-stat .ed-stat__lib { display: block; font-size: 13.5px; font-weight: 600; color: #3B4659; }
+.etache-dash .ed-stat h4 { margin: 2px 0 8px; font-size: 30px; font-weight: 700; line-height: 1.1; color: var(--deep) !important; }
+.ed-stat__info {
+  display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 999px; white-space: nowrap;
+  font-size: 12px; font-weight: 600; color: var(--deep); background: rgba(255, 255, 255, .65);
+}
+.ed-bubble {
+  position: relative; z-index: 1; width: 46px; height: 46px; flex-shrink: 0; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, .65);
+}
+.ed-bubble i { font-size: 20px; color: var(--deep); transition: transform .2s ease; }
+.ed-stat:hover .ed-bubble i { transform: scale(1.15); }
+
+/* ---------------------------------------------------------------------
+   Tâche prioritaire : cartes teintées selon la priorité
+   --------------------------------------------------------------------- */
+.etache-dash .tasks-card .task-box.ed-tache {
+  padding: 16px; border: 1px solid var(--tl-bordure); border-left: 4px solid var(--c); border-radius: 14px;
+  background: linear-gradient(120deg, var(--c-soft), transparent 70%);
+}
+.etache-dash .tasks-card .ed-tache h6 { color: var(--tl-texte); font-weight: 700; line-height: 1.4; }
+.etache-dash .tasks-card .ed-tache .project-link a { color: var(--c); font-weight: 600; }
+.etache-dash .tasks-card .ed-tache p { color: var(--tl-texte-doux); }
+.etache-dash .arrow-group > div {
+  width: 34px; height: 34px; border-radius: 50%; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #fff; background: linear-gradient(135deg, #4F8FD6, #1E4E85);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.etache-dash .arrow-group > div:hover { transform: scale(1.08); box-shadow: 0 6px 14px rgba(30, 78, 133, .35); }
+
+/* ---------------------------------------------------------------------
+   Barres de progression en dégradé
+   --------------------------------------------------------------------- */
+.etache-dash .progress { height: 8px; border-radius: 999px; background: rgba(91, 107, 132, .18); }
+.etache-dash .progress-bar { border-radius: 999px; }
+.etache-dash .progress-bar.bg-primary   { background-image: linear-gradient(90deg, #5FA0E6, #2B6CB0) !important; }
+.etache-dash .progress-bar.bg-success   { background-image: linear-gradient(90deg, #58B383, #2E7D5B) !important; }
+.etache-dash .progress-bar.bg-warning   { background-image: linear-gradient(90deg, #EDB251, #C77D0A) !important; }
+.etache-dash .progress-bar.bg-secondary { background-image: linear-gradient(90deg, #9A8CEB, #6D5BD0) !important; }
+/* L'avancement des tâches est toujours vert (comme sur les autres pages) */
+.etache-dash .tasks-card .progress-bar { background-image: linear-gradient(90deg, #58B383, #2E7D5B) !important; }
+
+/* ---------------------------------------------------------------------
+   Tableaux : en-tête teinté, survol, liens
+   --------------------------------------------------------------------- */
+.etache-dash .table thead th {
+  font-size: 11.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--tl-texte-doux);
+  background-image: linear-gradient(90deg, rgba(43, 108, 176, .10), rgba(46, 125, 91, .07));
+}
+.etache-dash .table tbody tr { transition: background .12s ease; }
+.etache-dash .table tbody tr:hover td { background: rgba(43, 108, 176, .06); }
+.etache-dash .table td a { font-weight: 600; color: var(--tl-encours); }
+.etache-dash .table td a:hover { text-decoration: underline; }
+
+/* ---------------------------------------------------------------------
+   Tableaux : pastille d'état, code, photos des acteurs
+   --------------------------------------------------------------------- */
+.ed-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 4px var(--c-soft); }
+.ed-code { display: inline-block; margin-right: 6px; padding: 1px 8px; border-radius: 6px; font-size: 12px; font-weight: 700; color: var(--c); background: var(--c-soft); }
+.etache-dash .table .customers { display: flex; align-items: center; margin: 0; padding: 0; list-style: none; }
+.etache-dash .table td .tl-badge { margin-left: 6px; }
+.etache-dash .tasks-card .project-member .customers { margin: 0; }

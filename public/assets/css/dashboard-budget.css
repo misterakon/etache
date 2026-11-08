@@ -1,0 +1,70 @@
+/* =====================================================================
+   Tableau de bord : bloc Budget (anneau) et bloc Demandes de justification
+   À ajouter à la fin de dashboard.css
+   ===================================================================== */
+
+/* ---------- Budget ---------- */
+.etache-dash .ed-budget .card-body { padding: 20px; }
+.ed-budget__titre { margin: 0; font-size: 16px; font-weight: 700; color: var(--tl-texte); }
+.ed-budget__ligne { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 14px 24px; padding-top: 12px; }
+.ed-budget__gauche { flex: 1 1 270px; min-width: 0; }
+.ed-budget__repartition { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+
+.ed-anneau { position: relative; width: 96px; height: 96px; flex-shrink: 0; }
+.ed-anneau svg { display: block; width: 100%; height: 100%; }
+.ed-anneau__fond, .ed-anneau__seg { fill: none; stroke-width: 5; }
+.ed-anneau__fond { stroke: var(--tl-bordure); }
+.ed-anneau__seg--terminee { stroke: var(--tl-terminee); }
+.ed-anneau__seg--encours  { stroke: var(--tl-encours); }
+.ed-anneau__seg--attente  { stroke: var(--tl-attente); }
+.ed-anneau__seg--retard   { stroke: var(--tl-retard); }
+.ed-anneau__seg--neutre   { stroke: var(--tl-neutre); }
+.ed-anneau__centre { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; }
+.ed-anneau__centre strong { font-size: 18px; color: var(--tl-texte); }
+.ed-anneau__centre small { font-size: 10.5px; color: var(--tl-texte-doux); }
+
+.ed-budget__legende { flex: 1 1 160px; min-width: 0; margin: 0; padding: 0; list-style: none; font-size: 13px; }
+.ed-budget__legende li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 3px 0; }
+.ed-budget__legende li > span { display: inline-flex; align-items: center; white-space: nowrap; color: var(--tl-texte-doux); }
+.ed-budget__legende li b { color: var(--tl-texte); font-weight: 600; white-space: nowrap; }
+.ed-legende__point { display: inline-block; width: 9px; height: 9px; margin-right: 8px; border-radius: 50%; background: var(--c); }
+
+.ed-budget__retard { margin: 10px 0 0; font-size: 12.5px; }
+.ed-budget__retard--oui, .ed-budget__retard--oui b { color: var(--tl-retard); }
+.ed-budget__retard--non { color: var(--tl-terminee); }
+
+.ed-budget__totaux ul { margin: 0; padding: 0; list-style: none; }
+.ed-budget__totaux li + li { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--tl-bordure); }
+.ed-budget__totaux h6 { margin: 0; font-size: 15px; font-weight: 700; color: var(--tl-texte); }
+.ed-budget__totaux span { font-size: 12.5px; color: var(--tl-texte-doux); }
+
+/* ---------- Demandes de justification ---------- */
+.ed-just__tout { font-size: 12.5px; font-weight: 600; color: var(--tl-encours); white-space: nowrap; }
+.ed-just__tout:hover { text-decoration: underline; }
+.ed-just__grille { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 575px) { .ed-just__grille { grid-template-columns: 1fr; } }
+
+.ed-just__tuile {
+  position: relative; display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+  border: 1px solid var(--tl-bordure); border-radius: 14px; color: var(--tl-texte); text-decoration: none;
+  background: linear-gradient(120deg, var(--c-soft), transparent 80%);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.ed-just__tuile:not([href]) { cursor: default; }
+.ed-just__tuile[href] { cursor: pointer; }
+.ed-just__tuile[href]:hover { transform: translateY(-2px); box-shadow: var(--tl-ombre-hover); }
+.ed-just__ico {
+  width: 42px; height: 42px; flex-shrink: 0; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--c); background: var(--c-soft);
+}
+.ed-just__texte { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+.ed-just__nb { font-size: 24px; font-weight: 700; color: var(--c); }
+.ed-just__lib { font-size: 12.5px; color: var(--tl-texte-doux); }
+.ed-just__fleche { margin-left: auto; font-size: 12px; color: var(--tl-texte-doux); }
+.ed-just__alerte {
+  position: absolute; top: 8px; right: 10px; padding: 1px 8px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 700; color: #fff; background: var(--c);
+}
+.ed-just__barre { display: flex; gap: 2px; height: 8px; margin-top: 16px; border-radius: 999px; overflow: hidden; background: rgba(91, 107, 132, .18); }
+.ed-just__barre span { display: block; height: 100%; background: var(--c); }
+.ed-just__pied { margin: 8px 0 0; font-size: 12.5px; color: var(--tl-texte-doux); }

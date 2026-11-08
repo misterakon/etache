@@ -1,0 +1,112 @@
+/* ==========================================================================
+   En-tête de page en dégradé + onglets horizontaux (composants <x-entete-page> et <x-onglets-page>).
+   Même design que la page « Détails de la tâche » : fond clair dégradé (bleu pâle, blanc, pêche),
+   textes foncés, cartes d'indicateurs blanches, onglets avec icône et compteur.
+   Utilisé par : Mes tâches, Suivi de l'exécution, Fiche agent.
+   ========================================================================== */
+
+.ep-page { display: flex; flex-direction: column; gap: 20px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+.ep-page *, .ep-page *::before, .ep-page *::after { box-sizing: border-box; }
+
+/* ---------- Héros ---------- */
+.ep-hero { position: relative; isolation: isolate; overflow: hidden; display: flex; flex-direction: column; gap: 16px; padding: 24px 28px 26px; border-radius: 26px; color: #0F1B33; border: 1px solid #D5E3F4; box-shadow: 0 18px 34px -22px rgba(15, 42, 91, .35);
+  background: radial-gradient(circle at 100% 100%, rgba(255, 214, 170, .4), transparent 55%), radial-gradient(circle at 0% 0%, rgba(43, 108, 176, .12), transparent 50%), linear-gradient(135deg, #EAF3FF 0%, #FFFFFF 58%, #FFF4E4 100%); }
+.dark-only .ep-hero { color: #EAF0FF; border-color: #2C3654; background: radial-gradient(circle at 100% 0%, rgba(255, 255, 255, .12), transparent 52%), linear-gradient(125deg, #1B1648 0%, #4C2A9E 55%, #8A3FB0 100%); }
+.ep-hero__ligne { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; }
+.ep-hero__badges, .ep-hero__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.ep-hero__code { padding: 4px 13px; border-radius: 10px; background: rgba(3, 48, 116, .09); border: 1px solid rgba(3, 48, 116, .28); color: #033074; font: 700 13.5px/1.4 'Plus Jakarta Sans', sans-serif; letter-spacing: .02em; }
+.ep-pill { display: inline-flex; align-items: center; gap: 7px; padding: 3px 12px; border-radius: 999px; font: 600 12px/1.5 'Plus Jakarta Sans', sans-serif; white-space: nowrap; }
+.ep-pill--bleu { background: #7DD3FC; color: #082457; } .ep-pill--ambre { background: #FCD34D; color: #3B2600; } .ep-pill--vert { background: #86EFAC; color: #053B1E; }
+.ep-pill--rouge { background: #E5484D; color: #fff; } .ep-pill--gris { background: #E2E8F0; color: #1F2937; } .ep-pill--violet { background: #C4B5FD; color: #2E1065; } .ep-pill--orange { background: #F5A524; color: #1A1203; }
+.ep-hero__titre { margin: 0; font: 700 27px/1.25 'Plus Jakarta Sans', sans-serif; letter-spacing: -.2px; color: #0F1B33; }
+.dark-only .ep-hero__titre { color: #fff; }
+.ep-hero__sous { margin: -6px 0 0; max-width: 860px; font: 400 14.5px/1.55 'Plus Jakarta Sans', sans-serif; color: #374151; }
+.dark-only .ep-hero__sous { color: #D5DEF5; }
+
+.ep-btn { display: inline-flex !important; align-items: center; gap: 8px; padding: 10px 16px; border: 1px solid transparent; border-radius: 12px; font: 600 13.5px/1.2 'Plus Jakarta Sans', sans-serif; cursor: pointer; text-decoration: none; transition: transform .15s, filter .15s; }
+.ep-btn:hover { transform: translateY(-1px); filter: brightness(1.06); }
+.ep-btn--primary { background: linear-gradient(135deg, #033074, #2B6CB0); color: #fff !important; box-shadow: 0 12px 20px -12px rgba(3, 48, 116, .9); }
+.ep-btn--blanc { background: #fff; border-color: #BCD2EE; color: #0F3A85 !important; }
+.ep-btn--ambre { background: #F5A524; color: #1A1203 !important; box-shadow: 0 10px 18px -10px #F5A524; }
+.ep-select { height: 42px; padding: 0 34px 0 14px; border: 1.5px solid #BCD2EE; border-radius: 12px; background-color: #fff; color: #0F1B33; font: 600 13.5px 'Plus Jakarta Sans', sans-serif; }
+
+/* ---------- Cartes d'indicateurs ---------- */
+.ep-hero__kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 1100px) { .ep-hero__kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .ep-hero__kpis { grid-template-columns: minmax(0, 1fr); } }
+.ep-kpi { display: flex; flex-direction: column; gap: 4px; padding: 13px 16px; border-radius: 16px; background: rgba(255, 255, 255, .88); border: 1px solid #D5E3F4; color: #0F1B33; box-shadow: 0 8px 20px -14px rgba(15, 42, 91, .35); }
+.dark-only .ep-kpi { background: rgba(255, 255, 255, .12); border-color: rgba(255, 255, 255, .28); color: #fff; }
+.ep-kpi__lib { display: flex; align-items: center; gap: 10px; font: 500 13.5px 'Plus Jakarta Sans', sans-serif; color: #374151; }
+.dark-only .ep-kpi__lib { color: #E6ECFA; }
+.ep-kpi__lib i { width: 22px; text-align: center; font-size: 19px; color: #2B6CB0; }
+.ep-kpi__val { font: 700 24px/1.2 'Plus Jakarta Sans', sans-serif; word-break: break-word; }
+.ep-kpi__sous { font: 500 12px 'Plus Jakarta Sans', sans-serif; color: #374151; }
+.dark-only .ep-kpi__sous { color: #D5DEF5; }
+.ep-kpi__barre { height: 6px; margin-top: 4px; border-radius: 3px; background: rgba(15, 58, 133, .12); overflow: hidden; }
+.ep-kpi__barre i { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, #2B6CB0, #1F8A5B); }
+.ep-kpi--retard .ep-kpi__lib i, .ep-kpi--retard .ep-kpi__val { color: #C2372E; }
+.ep-kpi--ok .ep-kpi__lib i { color: #1F8A5B; }
+.ep-kpi--ambre .ep-kpi__lib i { color: #C77D0A; }
+.ep-kpi--violet .ep-kpi__lib i { color: #6D5BD0; }
+
+/* ---------- Onglets horizontaux ---------- */
+.ep-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 8px; list-style: none; border-radius: 18px; background: #fff; border: 1px solid #DDE6F3; box-shadow: 0 8px 20px rgba(15, 42, 91, .06); }
+.dark-only .ep-tabs { background: #222B45; border-color: #2C3654; }
+.ep-tabs li { flex: 1 1 150px; display: flex; }
+.ep-tabs .tab-link { flex: 1; display: flex !important; align-items: center; justify-content: center; gap: 10px; padding: 11px 16px; border-radius: 12px; background: transparent !important; color: #0F1B33; font: 600 14.5px/1.2 'Plus Jakarta Sans', sans-serif; cursor: pointer; text-decoration: none; transition: background .15s, color .15s; }
+.dark-only .ep-tabs .tab-link { color: #EAF0FF; }
+.ep-tabs .tab-link:hover { background: #F0F5FC !important; }
+.ep-tabs .tab-link i { margin: 0 !important; font-size: 18px; line-height: 1; }
+.ep-tabs .tab-link.active { color: #fff !important; background: linear-gradient(135deg, #033074, #2B6CB0) !important; box-shadow: 0 10px 16px -10px rgba(3, 48, 116, .8); }
+.ep-tabs__nb { padding: 1px 9px; border-radius: 999px; background: rgba(3, 48, 116, .1); color: #033074; font: 700 11.5px/1.6 'Plus Jakarta Sans', sans-serif; font-style: normal; }
+.ep-tabs .tab-link.active .ep-tabs__nb { background: rgba(255, 255, 255, .25); color: #fff; }
+
+@media (prefers-reduced-motion: reduce) { .ep-btn { transition: none; } .ep-btn:hover { transform: none; } }
+
+/* ==========================================================================
+   Fiche agent : l'en-tête existant (photo, identité, indicateurs) reprend le même fond et les mêmes cartes
+   ========================================================================== */
+body:not(.dark-only) .pf-page .card.pf-hero { border: 1px solid #D5E3F4; border-radius: 26px; box-shadow: 0 18px 34px -22px rgba(15, 42, 91, .35);
+  background: radial-gradient(circle at 100% 100%, rgba(255, 214, 170, .4), transparent 55%), radial-gradient(circle at 0% 0%, rgba(43, 108, 176, .12), transparent 50%), linear-gradient(135deg, #EAF3FF 0%, #FFFFFF 58%, #FFF4E4 100%); }
+body:not(.dark-only) .pf-page .pf-nom { color: #0F1B33; font-size: 27px; }
+body:not(.dark-only) .pf-page .pf-fonction { color: #374151; }
+body:not(.dark-only) .pf-page .pf-stat { background: rgba(255, 255, 255, .9) !important; background-image: none !important; border: 1px solid #D5E3F4; border-radius: 16px; box-shadow: 0 8px 20px -14px rgba(15, 42, 91, .35); }
+body:not(.dark-only) .pf-page .pf-stat__lib { color: #374151; font-size: 14px; }
+body:not(.dark-only) .pf-page .pf-stat__val { font-size: 28px; }
+.pf-page .pf-stat__ico { font-size: 22px; }
+.pf-page .pf-btn { border-radius: 12px; }
+
+/* Beaucoup d'onglets : libellés sur une seule ligne */
+.ep-tabs li { flex: 1 1 0; min-width: max-content; }
+.ep-tabs .tab-link { white-space: nowrap; gap: 8px; padding: 11px 12px; font-size: 14px; }
+
+/* ==========================================================================
+   Fiche agent : en-tête à points bleus + 4 indicateurs à anneau (proposition B validée)
+   ========================================================================== */
+body:not(.dark-only) .pf-page .card.pf-hero { border: 1px solid #F5DDBF; position: relative; overflow: hidden;
+  background: url('fond-points.svg') center / 100% 100% no-repeat, linear-gradient(100deg, #FFFFFF 0%, #FFF6EA 100%); }
+.dark-only .pf-page .card.pf-hero { background: url('fond-points.svg') center / 100% 100% no-repeat, linear-gradient(100deg, #1B2540, #222B45); }
+.pf-page .pf-chip { font-weight: 600; }
+
+.pf-stats--v2 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 16px; position: relative; }
+@media (max-width: 1000px) { .pf-stats--v2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .pf-stats--v2 { grid-template-columns: minmax(0, 1fr); } }
+.pf-k { --c: #2B6CB0; --c-fond: #E6F1FB; position: relative; display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-radius: 18px; color: #0F1B33;
+  background: radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--c) 22%, #fff), transparent 60%), linear-gradient(135deg, var(--c-fond), #FFFFFF 85%);
+  border: 1px solid color-mix(in srgb, var(--c) 28%, #fff); box-shadow: 0 12px 24px -18px var(--c); transition: transform .18s, box-shadow .18s; }
+.pf-k:hover { transform: translateY(-3px); box-shadow: 0 18px 28px -16px var(--c); }
+.pf-k--vert { --c: #0F9D77; --c-fond: #DDF5EC; }
+.pf-k--bleu { --c: #2B6CB0; --c-fond: #E1EEFB; }
+.pf-k--rouge { --c: #D23B3B; --c-fond: #FDE4E4; }
+.pf-k--orange { --c: #E08A1E; --c-fond: #FFEFD8; }
+.pf-k__pct { position: absolute; top: 10px; right: 14px; font-size: 12px; font-weight: 700; color: color-mix(in srgb, var(--c) 80%, #000); }
+.pf-k__haut { display: flex; align-items: center; gap: 14px; }
+.pf-k__anneau { --p: 0; flex: none; width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center;
+  background: conic-gradient(var(--c) calc(var(--p) * 1%), color-mix(in srgb, var(--c) 18%, #fff) 0); box-shadow: 0 8px 14px -8px var(--c); }
+.pf-k__ico { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-size: 19px; color: #fff; background: linear-gradient(145deg, color-mix(in srgb, var(--c) 78%, #fff), var(--c)); border: 3px solid #fff; }
+.pf-k__texte { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+.pf-k__lib { font-size: 14px; font-weight: 600; color: #374151; }
+.pf-k__val { font-size: 34px; font-weight: 700; color: var(--c); letter-spacing: -.5px; }
+.pf-k__pastille { align-self: flex-start; padding: 3px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; color: color-mix(in srgb, var(--c) 75%, #000); background: color-mix(in srgb, var(--c) 14%, #fff); border: 1px solid color-mix(in srgb, var(--c) 35%, #fff); }
+.dark-only .pf-k { color: #EAF0FF; background: linear-gradient(135deg, color-mix(in srgb, var(--c) 25%, #222B45), #222B45); border-color: #2C3654; }
+.dark-only .pf-k__lib { color: #D5DEF5; } .dark-only .pf-k__pastille, .dark-only .pf-k__pct { color: #fff; }

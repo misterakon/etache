@@ -1,0 +1,95 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\JournalActivite;
+use App\Support\Reglages;
+use DomainException;
+use Illuminate\Http\Request;
+
+class ReglageController extends Controller
+{
+    private function autoriser(Request $request): void
+    {
+        abort_unless($request->user()?->hasRole('ADMIN'), 403, "Seul l'administrateur peut accéder aux réglages.");
+    }
+
+    public function index(Request $request)
+    {
+        $this->autoriser($request);
+
+        $catalogue = Reglages::catalogue();
+        $valeurs = $modifies = [];
+        foreach ($catalogue as $module => $m) {
+            foreach (array_keys($m['reglages']) as $reglage) {
+                $cle = "{$module}.{$reglage}";
+                $valeurs[$cle] = Reglages::get($cle);
+                $modifies[$cle] = ! Reglages::estParDefaut($cle);
+            }
+        }
+
+        return view('reglages.reglages', [
+            'catalogue' => $catalogue,
+            'valeurs' => $valeurs,
+            'modifies' => $modifies,
+            'historique' => JournalActivite::where('module', 'reglages')->orderByDesc('created_at')->orderByDesc('id')->limit(30)->get(),
+        ]);
+    }
+
+    /** Enregistre tous les réglages d'un module (formulaire d'un module). */
+    public function store(Request $request)
+    {
+        $this->autoriser($request);
+
+        $module = (string) $request->input('module');
+        $catalogue = Reglages::catalogue();
+        abort_unless(isset($catalogue[$module]), 404);
+
+        $erreurs = $nouvelles = [];
+        foreach ($catalogue[$module]['reglages'] as $reglage => $definition) {
+            if (Reglages::verrouille("{$module}.{$reglage}")) {
+                continue; // réglage verrouillé : sa valeur ne peut plus changer
+            }
+            $brut = match ($definition['type']) {
+                'bool' => $request->boolean("valeurs.{$reglage}"),
+                'liste' => $request->input("valeurs.{$reglage}", []),
+                default => $request->input("valeurs.{$reglage}"),
+            };
+
+            [$valeur, $erreur] = Reglages::normaliser($definition, $brut);
+            if ($erreur) {
+                $erreurs["valeurs.{$reglage}"] = $definition['libelle'].' : '.$erreur;
+            } else {
+                $nouvelles["{$module}.{$reglage}"] = $valeur;
+            }
+        }
+
+        if ($erreurs) {
+            return redirect()->back()->withErrors($erreurs)->withInput();
+        }
+
+        $nb = 0;
+        foreach ($nouvelles as $cle => $valeur) {
+            $nb += Reglages::enregistrer($cle, $valeur) ? 1 : 0;
+        }
+
+        return redirect()->route('reglages.index', ['module' => $module])
+            ->with('success', $nb ? "{$nb} réglage(s) enregistré(s)." : 'Aucune modification.');
+    }
+
+    public function retablir(Request $request)
+    {
+        $this->autoriser($request);
+
+        $cle = (string) $request->input('cle');
+        abort_unless(Reglages::definition($cle), 404);
+
+        try {
+            Reglages::retablir($cle);
+        } catch (DomainException $e) {
+            return redirect()->back()->withErrors(['reglage' => $e->getMessage()]);
+        }
+
+        return redirect()->route('reglages.index', ['module' => explode('.', $cle)[0]])->with('success', 'Valeur par défaut rétablie.');
+    }
+}

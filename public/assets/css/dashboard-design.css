@@ -1,0 +1,153 @@
+/* =====================================================================
+   Tableau de bord : design « dégradé diagonal + motifs »
+   Concerne : les 6 compteurs, le bloc Budget et le bloc Demandes de justification.
+   À charger APRÈS dashboard.css et dashboard-budget.css (il en redéfinit l'apparence).
+
+   Pour ajuster une carte : --g1 (foncé, côté texte), --g2 (milieu), --g3 (clair, côté icône).
+   Pour retirer les motifs d'une carte : --motif: none;
+   ===================================================================== */
+
+.etache-dash {
+  /* Motifs : formes blanches très discrètes (SVG intégrés, aucune image à charger) */
+  --m-points:  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18'%3E%3Ccircle cx='3' cy='3' r='1.5' fill='%23fff' fill-opacity='.34'/%3E%3C/svg%3E");
+  --m-lignes:  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14'%3E%3Cpath d='M-1 1l2-2M0 14L14 0M13 15l2-2' stroke='%23fff' stroke-opacity='.26' stroke-width='1.6'/%3E%3C/svg%3E");
+  --m-vagues:  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='36'%3E%3Cpath d='M0 18Q11.25 4 22.5 18T45 18T67.5 18T90 18' fill='none' stroke='%23fff' stroke-opacity='.26' stroke-width='1.6'/%3E%3C/svg%3E");
+  --m-croix:   url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22'%3E%3Cpath d='M11 7.5v7M7.5 11h7' stroke='%23fff' stroke-opacity='.34' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  --m-grille:  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22'%3E%3Cpath d='M22 0H0V22' fill='none' stroke='%23fff' stroke-opacity='.22' stroke-width='1.2'/%3E%3C/svg%3E");
+  --m-anneaux: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cg fill='none' stroke='%23fff' stroke-opacity='.24' stroke-width='1.6'%3E%3Ccircle cx='230' cy='230' r='50'/%3E%3Ccircle cx='230' cy='230' r='85'/%3E%3Ccircle cx='230' cy='230' r='120'/%3E%3Ccircle cx='230' cy='230' r='155'/%3E%3Ccircle cx='230' cy='230' r='190'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* ---------------------------------------------------------------------
+   Fond commun : dégradé diagonal + halo lumineux en haut à droite, motif, voile qui efface le motif côté texte
+   --------------------------------------------------------------------- */
+.etache-dash .card.ed-stat[class] {
+  background-color: var(--g2);
+  background-image:
+    radial-gradient(circle at 100% 0%, rgba(255, 255, 255, .24), transparent 50%),
+    linear-gradient(115deg, var(--g1) 0%, var(--g2) 58%, var(--g3) 100%);
+  background-size: auto;
+  background-repeat: no-repeat;
+  background-position: center;
+  border: 0;
+  color: #fff;
+}
+.etache-dash .card.ed-stat::before {
+  content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background-image: var(--motif, none);
+  background-repeat: var(--m-repeat, repeat);
+  background-position: var(--m-pos, 0 0);
+  background-size: var(--m-size, auto);
+}
+.etache-dash .card.ed-stat::after {
+  content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background: linear-gradient(115deg, var(--g1) 0%, transparent 62%);
+}
+.etache-dash .card.ed-stat > .card-body { position: relative; z-index: 1; }
+
+/* ---------------------------------------------------------------------
+   Les 6 compteurs
+   --------------------------------------------------------------------- */
+.etache-dash .card.ed-stat.tl-attente  { --g1: #8A4B00; --g2: #C77D0A; --g3: #EDB251; --motif: var(--m-lignes); }
+.etache-dash .card.ed-stat.tl-terminee { --g1: #0F5A3D; --g2: #2E7D5B; --g3: #58B383; --motif: var(--m-points); }
+.etache-dash .card.ed-stat.tl-encours  { --g1: #123E73; --g2: #2B6CB0; --g3: #5FA0E6; --motif: var(--m-vagues); }
+.etache-dash .card.ed-stat.tl-retard   { --g1: #7A1F1A; --g2: #A73B34; --g3: #E0716A; --motif: var(--m-croix); }
+.etache-dash .card.ed-stat.tl-avenir   { --g1: #3B2A96; --g2: #6D5BD0; --g3: #9A8CEB; --motif: var(--m-grille); }
+.etache-dash .card.ed-stat.tl-teal     { --g1: #064E57; --g2: #0E7C86; --g3: #46B7C0; --motif: var(--m-anneaux); --m-repeat: no-repeat; --m-pos: right -40px bottom -50px; --m-size: 260px; }
+
+.etache-dash .card.ed-stat .ed-stat__lib { color: rgba(255, 255, 255, .9); }
+.etache-dash .card.ed-stat h4 { color: #fff !important; text-shadow: 0 1px 3px rgba(0, 0, 0, .22); }
+.etache-dash .card.ed-stat .ed-stat__info {
+  color: #fff; background: rgba(255, 255, 255, .20); border: 1px solid rgba(255, 255, 255, .30);
+}
+.etache-dash .card.ed-stat .ed-bubble {
+  background: rgba(255, 255, 255, .93); border: 0; box-shadow: 0 6px 14px rgba(0, 0, 0, .22);
+}
+.etache-dash .card.ed-stat .ed-bubble i { color: var(--g2); }
+.etache-dash .card.ed-stat:hover { box-shadow: 0 14px 28px rgba(16, 24, 40, .26); }
+
+/* ---------------------------------------------------------------------
+   Bloc Budget : bleu nuit, anneaux de pièces ; arcs en teintes claires pour rester lisibles sur fond sombre
+   --------------------------------------------------------------------- */
+.etache-dash .card.ed-stat.ed-budget.tl-encours {
+  --g1: #0A2342; --g2: #12467A; --g3: #2F7BC4;
+  --motif: var(--m-anneaux); --m-repeat: no-repeat; --m-pos: right -50px bottom -60px; --m-size: 300px;
+}
+.etache-dash .ed-budget .ed-budget__titre { color: #fff; }
+.etache-dash .ed-budget .ed-anneau__fond { stroke: rgba(255, 255, 255, .18); }
+.etache-dash .ed-budget .ed-anneau__seg--terminee { stroke: #5FD3A0; }
+.etache-dash .ed-budget .ed-anneau__seg--encours  { stroke: #7DB9F5; }
+.etache-dash .ed-budget .ed-anneau__seg--attente  { stroke: #F5B14A; }
+.etache-dash .ed-budget .ed-anneau__seg--retard   { stroke: #FF8F85; }
+.etache-dash .ed-budget .ed-anneau__seg--neutre   { stroke: #CBD5E4; }
+.etache-dash .ed-budget .ed-anneau__centre strong { color: #fff; }
+.etache-dash .ed-budget .ed-anneau__centre small { color: rgba(255, 255, 255, .75); }
+.etache-dash .ed-budget .ed-budget__legende li > span { color: rgba(255, 255, 255, .84); }
+.etache-dash .ed-budget .ed-budget__legende li b { color: #fff; }
+.etache-dash .ed-budget .ed-legende__point.tl-terminee { background: #5FD3A0; }
+.etache-dash .ed-budget .ed-legende__point.tl-encours  { background: #7DB9F5; }
+.etache-dash .ed-budget .ed-legende__point.tl-attente  { background: #F5B14A; }
+.etache-dash .ed-budget .ed-legende__point.tl-retard   { background: #FF8F85; }
+.etache-dash .ed-budget .ed-legende__point.tl-neutre   { background: #CBD5E4; }
+.etache-dash .ed-budget .ed-budget__retard--oui, .etache-dash .ed-budget .ed-budget__retard--oui b { color: #FFC2BC; }
+.etache-dash .ed-budget .ed-budget__retard--non { color: #A9F1CC; }
+.etache-dash .ed-budget .ed-budget__totaux h6 { color: #fff; }
+.etache-dash .ed-budget .ed-budget__totaux span { color: rgba(255, 255, 255, .76); }
+.etache-dash .ed-budget .ed-budget__totaux li + li { border-top-color: rgba(255, 255, 255, .28); }
+
+/* ---------------------------------------------------------------------
+   Bloc Demandes de justification : carte pleine (comme le Budget), prune, tuiles « verre »
+   Pas de card-header : le titre et le lien « Tout voir » sont sur la première ligne de la carte.
+   Les icônes sont dessinées par le CSS (fond de la pastille), centrées de façon absolue :
+   plus de balise <svg> ni de police d'icônes que le thème pourrait déplacer.
+   --------------------------------------------------------------------- */
+.etache-dash .card.ed-stat.ed-just { --g1: #370350; --g2: #7A2F8A; --g3: #B965B8; --motif: var(--m-points); }
+.etache-dash .ed-just .card-body { padding: 20px; }
+.etache-dash .ed-just .ed-just__titre { margin: 0; font-size: 16px; font-weight: 700; color: #fff; text-transform: none; }
+.etache-dash .ed-just .ed-just__tout {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; white-space: nowrap;
+  font-size: 12.5px; font-weight: 600; color: #fff; text-decoration: none;
+  background: rgba(255, 255, 255, .20); border: 1px solid rgba(255, 255, 255, .32);
+  transition: background .15s ease;
+}
+.etache-dash .ed-just .ed-just__tout:hover { background: rgba(255, 255, 255, .34); }
+
+/* 4 tuiles sur une ligne quand la carte est large, 2 sur 2 quand elle est étroite */
+.etache-dash .ed-just .ed-just__grille { display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: 10px; margin-top: 14px; }
+
+.etache-dash .ed-just .ed-just__tuile {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; padding: 14px 8px 12px; text-align: center; text-decoration: none; color: #fff;
+  background: rgba(255, 255, 255, .15); border: 1px solid rgba(255, 255, 255, .30); border-radius: 14px;
+  transition: transform .15s ease, background .15s ease, box-shadow .15s ease;
+}
+.etache-dash .ed-just a.ed-just__tuile[href]:hover { transform: translateY(-2px); background: rgba(255, 255, 255, .24); box-shadow: 0 10px 22px rgba(0, 0, 0, .22); }
+.etache-dash .ed-just .ed-just__tuile:not([href]) { cursor: default; }
+
+/* pastille ronde blanche + icône centrée de façon absolue (haut/bas/gauche/droite = 0, marges automatiques) */
+.etache-dash .ed-just .ed-just__ico {
+  position: relative; display: block; flex: 0 0 auto; width: 44px; height: 44px; margin: 0 auto 6px;
+  border-radius: 50%; background: #fff; box-shadow: 0 4px 10px rgba(0, 0, 0, .20);
+}
+.etache-dash .ed-just .ed-just__ico::before {
+  content: ""; position: absolute; top: 0; right: 0; bottom: 0; left: 0; margin: auto; width: 22px; height: 22px;
+  background: var(--ico) center / contain no-repeat;
+}
+.etache-dash .ed-just .tl-attente  { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23C77D0A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 3h10M7 21h10M8 3v3.2a4 4 0 0 0 1.4 3L12 12l-2.6 2.8a4 4 0 0 0-1.4 3V21M16 3v3.2a4 4 0 0 1-1.4 3L12 12l2.6 2.8a4 4 0 0 1 1.4 3V21'/%3E%3C/svg%3E"); }
+.etache-dash .ed-just .tl-terminee { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232E7D5B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M8 12.5l2.7 2.7L16 9.5'/%3E%3C/svg%3E"); }
+.etache-dash .ed-just .tl-retard   { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23C0392B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M9 9l6 6M15 9l-6 6'/%3E%3C/svg%3E"); }
+.etache-dash .ed-just .tl-neutre   { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235B6B84' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M5.7 5.7l12.6 12.6'/%3E%3C/svg%3E"); }
+
+.etache-dash .ed-just .ed-just__nb { font-size: 26px; line-height: 1.05; font-weight: 700; color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, .22); }
+.etache-dash .ed-just .ed-just__lib { font-size: 12.5px; color: rgba(255, 255, 255, .88); }
+.etache-dash .ed-just .ed-just__alerte {
+  position: absolute; top: 7px; right: 7px; padding: 1px 8px; border-radius: 999px;
+  font-size: 10px; font-weight: 700; color: #fff; background: #F59E0B; box-shadow: 0 2px 6px rgba(0, 0, 0, .25);
+}
+
+/* barre de répartition et pied : sur fond sombre */
+.etache-dash .ed-just .ed-just__barre { background: rgba(255, 255, 255, .22); }
+.etache-dash .ed-just .ed-just__barre .tl-attente  { background: #FBBF24; }
+.etache-dash .ed-just .ed-just__barre .tl-terminee { background: #4ADE80; }
+.etache-dash .ed-just .ed-just__barre .tl-retard   { background: #FB7185; }
+.etache-dash .ed-just .ed-just__barre .tl-neutre   { background: #CBD5E1; }
+.etache-dash .ed-just .ed-just__pied { color: rgba(255, 255, 255, .88); }

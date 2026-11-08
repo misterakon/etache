@@ -1,0 +1,149 @@
+/* Profils d'accès : liste + formulaire des droits (public/assets/css/profil-acces.css)
+   Mêmes tokens que le reste de l'application : #033074 / #2B6CB0 (bleu), #F26A0F (orange), #009E60 (vert), Plus Jakarta Sans. */
+
+.pa-page-wrap { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+
+/* Petites pastilles dans l'en-tête (nombre de profils, de sous-menus) */
+.pa-tag { display: inline-flex !important; align-items: center; gap: 7px; padding: 5px 12px; border-radius: 99px; background: rgba(255, 255, 255, .55); color: #0F3A85; font: 700 12.5px 'Plus Jakarta Sans', sans-serif; }
+
+/* ===================================================================== LISTE ===================================================================== */
+
+.pa-panneau { padding: 10px 20px 20px; border: 1px solid #D5E3F4; border-radius: 20px; background: #fff; box-shadow: 0 14px 30px -24px rgba(15, 42, 91, .45); }
+
+.pa-ajouter { display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 18px; border: 0; border-radius: 12px; background: linear-gradient(135deg, #033074, #2B6CB0); color: #fff !important; font: 800 13.5px 'Plus Jakarta Sans', sans-serif; text-decoration: none !important; cursor: pointer; box-shadow: 0 10px 18px -12px rgba(3, 48, 116, .9); transition: transform .15s; }
+.pa-ajouter:hover { transform: translateY(-1px); }
+
+/* Table transformée en lignes « flottantes » arrondies, tout en restant une vraie <table> (DataTables continue de fonctionner) */
+table.pa-table { border-collapse: separate !important; border-spacing: 0 10px !important; width: 100%; margin-top: 10px; }
+table.pa-table thead th { border: 0 !important; padding: 0 14px 6px !important; font: 800 11px 'Plus Jakarta Sans', sans-serif; letter-spacing: .06em; text-transform: uppercase; color: #6B7A94; text-align: left; }
+table.pa-table tbody tr { background: #F8FBFF; transition: box-shadow .15s, transform .15s; }
+table.pa-table tbody tr:hover { box-shadow: 0 10px 20px -14px rgba(15, 42, 91, .55); transform: translateY(-1px); }
+table.pa-table tbody td { border: 1px solid #E7EEF8 !important; border-left: 0 !important; border-right: 0 !important; padding: 11px 14px !important; vertical-align: middle; }
+table.pa-table tbody td:first-child { border-left: 1px solid #E7EEF8 !important; border-top-left-radius: 14px; border-bottom-left-radius: 14px; }
+table.pa-table tbody td:last-child { border-right: 1px solid #E7EEF8 !important; border-top-right-radius: 14px; border-bottom-right-radius: 14px; }
+
+.pa-identite { display: flex; align-items: center; gap: 12px; }
+.pa-identite .pa-avatar { width: 36px; height: 36px; border-radius: 50%; font-size: 13px; }
+.pa-nom { font: 800 14px 'Plus Jakarta Sans', sans-serif; color: #0F1B33; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pa-slug { margin-top: 1px; font: 700 11.5px 'Plus Jakarta Sans', sans-serif; letter-spacing: .04em; color: #8A93A6; }
+
+.pa-droits-chip { display: inline-block !important; padding: 5px 12px; border-radius: 99px; background: #EEF3FA; color: #0F3A85; font: 700 12px 'Plus Jakarta Sans', sans-serif; }
+.pa-droits-chip--tous { background: #FFF6E5; color: #92400E; }
+
+.pa-statut { display: inline-flex !important; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 99px; font: 800 11.5px 'Plus Jakarta Sans', sans-serif; }
+.pa-statut::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.pa-statut--actif { background: #E7F7EE; color: #0B5A33; }
+.pa-statut--inactif { background: #FDECEF; color: #9F1239; }
+
+.pa-badge-systeme { display: inline-flex !important; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 99px; background: #FFF6E5; color: #92400E; font: 800 10.5px 'Plus Jakarta Sans', sans-serif; letter-spacing: .03em; }
+
+.pa-comptes { font: 800 13px 'Plus Jakarta Sans', sans-serif; color: #0F1B33; font-variant-numeric: tabular-nums; }
+
+.pa-actions { display: flex !important; gap: 8px; }
+.pa-btn { display: inline-flex !important; align-items: center; justify-content: center; width: 32px; height: 32px; border: 1.5px solid transparent; border-radius: 9px; background: var(--c); color: #fff; cursor: pointer; transition: background .15s, transform .15s; }
+.pa-btn i { display: inline-block !important; width: auto !important; height: auto !important; line-height: 1; }
+.pa-btn:hover { background: var(--c-fonce); transform: translateY(-1px); }
+.pa-btn--modifier { --c: #2B6CB0; --c-fonce: #1E4E85; }
+.pa-btn--supprimer { --c: #BE123C; --c-fonce: #930F2F; }
+.pa-verrou { display: inline-flex !important; align-items: center; gap: 6px; color: #9CA3AF; font: 600 12px 'Plus Jakarta Sans', sans-serif; }
+
+/* L'avatar lui-même (réutilisé plus petit dans la liste, plus grand dans le formulaire) */
+.pa-avatar { display: flex !important; align-items: center; justify-content: center; flex: none; width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, #033074, #2B6CB0); color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; line-height: 1; }
+
+/* Habillage DataTables 2.x (classes réelles : dt-search, dt-length, dt-info, dt-paging…) */
+.pa-panneau .dt-search { float: right; margin-bottom: 10px; display: flex !important; align-items: center; gap: 8px; font: 600 12.5px 'Plus Jakarta Sans', sans-serif; color: #374151; }
+.pa-panneau .dt-search .dt-input { height: 38px; padding: 0 14px; border: 1.5px solid #D5E3F4; border-radius: 10px; font: 500 13px 'Plus Jakarta Sans', sans-serif; }
+.pa-panneau .dt-search .dt-input:focus { outline: 0; border-color: #2B6CB0; box-shadow: 0 0 0 3px rgba(43, 108, 176, .15); }
+.pa-panneau .dt-length { float: left; margin-bottom: 10px; display: flex !important; align-items: center; gap: 8px; font: 600 12.5px 'Plus Jakarta Sans', sans-serif; color: #374151; }
+.pa-panneau .dt-length .dt-input { height: 36px; border-radius: 8px; border: 1.5px solid #D5E3F4; font: 500 13px 'Plus Jakarta Sans', sans-serif; }
+.pa-panneau .dt-info { clear: both; padding-top: 6px; font: 500 12.5px 'Plus Jakarta Sans', sans-serif; color: #6B7A94; }
+.pa-panneau .dt-paging { padding-top: 10px; }
+.pa-panneau .dt-paging-button { display: inline-flex !important; align-items: center; justify-content: center; min-width: 32px; height: 32px; padding: 0 10px; margin-left: 4px; border-radius: 8px !important; border: 1px solid transparent !important; font: 700 12.5px 'Plus Jakarta Sans', sans-serif; color: #0F3A85 !important; cursor: pointer; }
+.pa-panneau .dt-paging-button.current { background: linear-gradient(135deg, #033074, #2B6CB0) !important; color: #fff !important; }
+.pa-panneau .dt-paging-button.disabled { color: #B9C2D0 !important; cursor: default; }
+.pa-panneau .dt-paging-button:hover:not(.current):not(.disabled) { background: #EEF3FA !important; border-color: #D5E3F4 !important; }
+
+/* ===================================================================== FORMULAIRE MODAL ===================================================================== */
+
+.pa-identite-form { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+.pa-identite-form .pa-avatar { width: 44px; height: 44px; font-size: 16px; border-radius: 50%; }
+.pa-identite-form__champs { flex: 1; margin: 0 !important; }
+
+.pa-legende { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-bottom: 16px; padding: 10px 14px; border-radius: 12px; background: #F8FBFF; border: 1px solid #EEF3FA; font: 500 12px 'Plus Jakarta Sans', sans-serif; color: #475569; }
+.pa-legende b { color: #0F1B33; font-weight: 800; }
+
+.pa-entete { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
+.pa-entete h6 { font: 800 14px 'Plus Jakarta Sans', sans-serif; color: #0F1B33; }
+.pa-entete__actions { flex: none; white-space: nowrap; }
+.pa-lien { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; padding: 0; color: #2B6CB0; font: 700 12.5px 'Plus Jakarta Sans', sans-serif; cursor: pointer; }
+.pa-lien:hover { text-decoration: underline; }
+#pa_tout_accorder { color: #C77D0A; }
+.pa-sep { color: #c6ceda; margin: 0 8px; }
+
+#pa_catalogue { display: flex; flex-direction: column; gap: 12px; }
+
+/* --- Section repliable par menu --- */
+.pa-menu { border: 1px solid #E1EAF5; border-radius: 16px; overflow: hidden; background: #fff; box-shadow: 0 10px 22px -20px rgba(15, 42, 91, .5); }
+.pa-menu > summary { list-style: none; display: flex; align-items: center; gap: 12px; padding: 13px 16px; cursor: pointer; background: #F8FBFF; user-select: none; }
+.pa-menu > summary::-webkit-details-marker { display: none; }
+.pa-menu__icone { display: inline-flex !important; flex: none; width: 32px; height: 32px; border-radius: 10px; background: linear-gradient(135deg, #033074, #2B6CB0); align-items: center; justify-content: center; }
+.pa-menu__icone i { display: inline-block !important; flex: none !important; width: auto !important; height: auto !important; color: #fff; font-size: 14px; line-height: 1; }
+.pa-menu__libelle { font-weight: 800; font-size: 14px; color: #0F1B33; flex: 1; }
+.pa-menu__compteur { font-size: 11.5px; font-weight: 800; padding: 4px 11px; border-radius: 99px; background: #E8EEF7; color: #4B5668; }
+.pa-menu__compteur.pa-actif { background: #E7F7EE; color: #0B5A33; }
+.pa-menu__interrupteur { flex: none; margin: 0 2px !important; }
+.pa-menu__chevron { color: #8a93a6; font-size: 12px; transition: transform .18s ease; }
+.pa-menu[open] > summary .pa-menu__chevron { transform: rotate(180deg); }
+.pa-menu[open] > summary { border-bottom: 1px solid #E1EAF5; }
+.pa-menu__pages { padding: 6px 16px 8px; display: flex; flex-direction: column; }
+
+.pa-page { padding: 13px 0; border-top: 1px dashed #EEF1F6; }
+.pa-page:first-child { border-top: 0; }
+.pa-page__haut { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.pa-page__libelle { font-weight: 700; font-size: 13.5px; color: #1F2937; flex: 1 1 200px; }
+
+/* --- Pastilles segmentées (niveau) : un groupe de boutons connectés --- */
+.pa-niveaux { display: inline-flex; border: 1px solid #DDE3EC; border-radius: 11px; overflow: hidden; background: #F3F5F9; flex: none; }
+.pa-niveau { position: relative; margin: 0 !important; display: flex; align-self: stretch; }
+.pa-niveau input { position: absolute; opacity: 0; width: 0; height: 0; }
+.pa-niveau span { display: flex; align-items: center; justify-content: center; gap: 5px; flex: 1; padding: 7px 13px; font-size: 12px; font-weight: 700; color: #6B7585; cursor: pointer; white-space: nowrap; transition: background .15s, color .15s; border-left: 1px solid #DDE3EC; }
+.pa-niveau:first-child span { border-left: 0; }
+.pa-niveau input:focus-visible + span { outline: 2px solid #2B6CB0; outline-offset: -2px; }
+.pa-niveau input:checked + span { color: #fff; box-shadow: inset 0 0 0 1px rgb(255 255 255 / 15%); }
+.pa-niveau--aucun input:checked + span { background: #8A93A6; }
+.pa-niveau--lecture input:checked + span { background: #2B6CB0; }
+.pa-niveau--saisie input:checked + span { background: #D08A1C; }
+.pa-niveau--gestion input:checked + span { background: #1F9D63; }
+.pa-niveau span:hover { background: #E7ECF5; }
+.pa-niveau input:checked + span:hover { opacity: .92; }
+
+/* --- Interrupteurs (droits spéciaux) : vrai interrupteur piste + curseur --- */
+.pa-switch { display: inline-flex !important; align-items: center; gap: 9px; margin: 0 !important; cursor: pointer; user-select: none; }
+.pa-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.pa-switch__piste { position: relative; flex: none; width: 36px; height: 21px; border-radius: 99px; background: #CBD3DF; transition: background .18s ease; }
+.pa-switch__piste::after { content: ''; position: absolute; top: 2px; left: 2px; width: 17px; height: 17px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(15, 42, 91, .35); transition: transform .18s ease; }
+.pa-switch input:checked + .pa-switch__piste { background: linear-gradient(135deg, #033074, #2B6CB0); }
+.pa-switch input:checked + .pa-switch__piste::after { transform: translateX(15px); }
+.pa-switch input:focus-visible + .pa-switch__piste { outline: 2px solid #2B6CB0; outline-offset: 2px; }
+.pa-switch input:disabled + .pa-switch__piste { opacity: .4; cursor: not-allowed; }
+.pa-switch__texte { font: 600 12px 'Plus Jakarta Sans', sans-serif; color: #475569; }
+/* État « partiel » (certains sous-menus accordés, pas tous) : piste ambrée, curseur au milieu */
+.pa-switch--partiel .pa-switch__piste { background: #C77D0A; }
+.pa-switch--partiel .pa-switch__piste::after { transform: translateX(7px); }
+
+.pa-switch--sm .pa-switch__piste { width: 30px; height: 18px; }
+.pa-switch--sm .pa-switch__piste::after { width: 14px; height: 14px; }
+.pa-switch--sm input:checked + .pa-switch__piste::after { transform: translateX(12px); }
+.pa-switch--sm.pa-switch--partiel .pa-switch__piste::after { transform: translateX(6px); }
+
+.pa-speciales { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 10px; padding: 10px 12px; background: #F8FBFF; border: 1px solid #EEF3FA; border-radius: 12px; }
+.pa-speciale.pa-speciale--verrouillee { opacity: .45; }
+
+@media (max-width: 640px) {
+  .pa-identite-form { align-items: flex-start; }
+  .pa-page__haut { flex-direction: column; align-items: flex-start; }
+  .pa-page__libelle { flex: none; }
+  .pa-niveaux { width: 100%; }
+  .pa-niveau { flex: 1; }
+  .pa-niveau span { text-align: center; padding: 8px 4px; }
+}

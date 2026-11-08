@@ -1,0 +1,13 @@
+// 1) En haut du fichier, ajouter :
+use App\Support\ExportPdf;
+
+// 2) Remplacer la fin de telecharger() (de « if ($format === 'xlsx') { » jusqu'à la fin de la méthode) par :
+        $synthese = ExportTaches::synthese($taches);
+
+        if ($format === 'xlsx') {
+            return ExportExcel::telecharger($fichier, $titre, $infos, $colonnes, $lignes, $synthese);
+        }
+
+        return ExportPdf::tableau($fichier, $titre, $infos, $colonnes, $lignes, $synthese);
+    }
+}

@@ -1,0 +1,25 @@
+/* ---- Carte Budget : anneau de répartition par statut (à ajouter à la fin de tache-list.css) ---- */
+.tl-budget .tl-budget-ligne { flex-wrap: wrap; align-items: flex-start; gap: 14px 18px; }
+.tl-budget-gauche { flex: 1 1 230px; min-width: 0; }
+.tl-budget-repartition { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; } /* carte étroite : la légende passe sous l'anneau */
+
+.tl-anneau { position: relative; width: 88px; height: 88px; flex-shrink: 0; }
+.tl-anneau svg { display: block; width: 100%; height: 100%; }
+.tl-anneau__fond, .tl-anneau__seg { fill: none; stroke-width: 5; }
+.tl-anneau__fond { stroke: var(--tl-bordure); }
+.tl-anneau__seg--terminee { stroke: var(--tl-terminee); }
+.tl-anneau__seg--encours  { stroke: var(--tl-encours); }
+.tl-anneau__seg--attente  { stroke: var(--tl-attente); }
+.tl-anneau__seg--neutre   { stroke: var(--tl-neutre); }
+.tl-anneau__centre { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; }
+.tl-anneau__centre strong { font-size: 17px; color: var(--tl-texte); }
+.tl-anneau__centre small { font-size: 10.5px; color: var(--tl-texte-doux); }
+
+.tl-budget-legende { flex: 1 1 150px; min-width: 0; margin: 0; padding: 0; list-style: none; font-size: 12.5px; }
+.tl-budget-legende li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 3px 0; }
+.tl-budget-legende li > span { display: inline-flex; align-items: center; white-space: nowrap; color: var(--tl-texte-doux); }
+.tl-budget-legende li b { color: var(--tl-texte); font-weight: 600; white-space: nowrap; }
+
+.tl-budget-retard { margin: 10px 0 0; font-size: 12.5px; }
+.tl-budget-retard--oui, .tl-budget-retard--oui b { color: var(--tl-retard); }
+.tl-budget-retard--non { color: var(--tl-terminee); }

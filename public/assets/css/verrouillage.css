@@ -1,0 +1,55 @@
+/* ==========================================================================
+   Verrouillage de session
+   1. Page « Session verrouillée » (même cadre que la page de connexion : login-etache.css)
+   2. Fenêtre d'avertissement avec compte à rebours (affichée par verrouillage.js)
+   ========================================================================== */
+
+/* ---------- 1. Page de verrouillage ---------- */
+.vr-page .vr-etat { display: flex; align-items: center; justify-content: center; gap: 9px; width: fit-content; margin: 0 auto 12px; padding: 7px 18px; border-radius: 999px;
+  background: rgba(242, 106, 15, .13); border: 1px solid rgba(242, 106, 15, .35); color: #8A3A00; font: 700 13px/1.2 'Plus Jakarta Sans', sans-serif; letter-spacing: .04em; text-transform: uppercase; }
+.vr-page .vr-etat i { color: #F26A0F; }
+.vr-page .vr-info { margin: 0 0 18px; text-align: center; color: #374151 !important; font: 400 14px/1.55 'Plus Jakarta Sans', sans-serif; }
+
+.vr-page .vr-identite { display: flex; align-items: center; gap: 16px; margin: 0 0 20px; padding: 14px 16px; border-radius: 16px; background: linear-gradient(135deg, #EAF3FF 0%, #FFFFFF 60%, #FFF4E4 100%); border: 1px solid #D5E3F4; }
+.vr-page .vr-avatar { position: relative; flex: none; display: inline-flex; width: 64px; height: 64px; border-radius: 50%; padding: 3px; background: linear-gradient(135deg, #F26A0F, #FFFFFF 50%, #009E60); box-shadow: 0 10px 18px -10px rgba(3, 48, 116, .6); }
+.vr-page .vr-avatar img, .vr-page .vr-avatar__initiales { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 3px solid #fff; background: #fff; }
+.vr-page .vr-avatar__initiales { display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #033074, #2B6CB0); color: #fff; font: 700 20px 'Plus Jakarta Sans', sans-serif; }
+.vr-page .vr-avatar__cadenas { position: absolute; right: -4px; bottom: -2px; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #F26A0F; border: 2px solid #fff; color: #fff; font-size: 11px; }
+.vr-page .vr-identite__texte { min-width: 0; }
+.vr-page .vr-identite__nom { font: 700 17px/1.25 'Plus Jakarta Sans', sans-serif; color: #0F1B33; }
+.vr-page .vr-identite__email { margin-top: 2px; font: 500 13.5px 'Plus Jakarta Sans', sans-serif; color: #374151; word-break: break-all; }
+
+.vr-page .vr-erreur { margin-top: 8px; padding: 8px 12px; border-radius: 10px; background: rgba(194, 55, 46, .1); color: #7A1F1A; font: 600 13px/1.4 'Plus Jakarta Sans', sans-serif; }
+.vr-page .vr-aide { margin: 16px 0 0; text-align: center; color: #374151 !important; font: 400 12.5px/1.5 'Plus Jakarta Sans', sans-serif; }
+.vr-page .vr-sortie { margin: 18px 0 0; text-align: center; }
+.vr-page .vr-sortie button { padding: 0; border: 0; background: none; color: #033074; font: 700 14px 'Plus Jakarta Sans', sans-serif; cursor: pointer; }
+.vr-page .vr-sortie button:hover { text-decoration: underline; }
+.vr-page .show-hide { cursor: pointer; }
+
+/* ---------- 2. Fenêtre d'avertissement (compte à rebours) ---------- */
+.vr-voile { position: fixed; inset: 0; z-index: 100000; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(10, 19, 48, .62); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); animation: vr-fondu .25s ease both; }
+.vr-voile[hidden] { display: none; }
+.vr-carte { width: min(440px, 100%); padding: 30px 30px 26px; border-radius: 26px; text-align: center; background: linear-gradient(135deg, #EAF3FF 0%, #FFFFFF 58%, #FFF4E4 100%); border: 1px solid #D5E3F4; box-shadow: 0 40px 80px -24px rgba(3, 18, 48, .75); font-family: 'Plus Jakarta Sans', system-ui, sans-serif; animation: vr-monte .35s cubic-bezier(.2, .8, .2, 1) both; }
+.vr-anneau { position: relative; width: 132px; height: 132px; margin: 0 auto 16px; }
+.vr-anneau svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.vr-anneau__fond { stroke: rgba(3, 48, 116, .12); }
+.vr-anneau__reste { stroke: #033074; transition: stroke-dashoffset 1s linear, stroke .3s; }
+.vr-carte.vr-urgent .vr-anneau__reste { stroke: #C2372E; }
+.vr-anneau__nombre { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.vr-anneau__nombre strong { font: 700 42px/1 'Plus Jakarta Sans', sans-serif; color: #0F1B33; font-variant-numeric: tabular-nums; }
+.vr-anneau__nombre span { margin-top: 2px; font: 500 12px 'Plus Jakarta Sans', sans-serif; color: #374151; }
+.vr-carte h3 { margin: 0 0 8px; font: 700 21px/1.25 'Plus Jakarta Sans', sans-serif; color: #0F1B33; }
+.vr-carte p { margin: 0 0 20px; font: 400 14.5px/1.55 'Plus Jakarta Sans', sans-serif; color: #374151; }
+.vr-actions { display: flex; flex-direction: column; gap: 10px; }
+.vr-btn { display: inline-flex; align-items: center; justify-content: center; gap: 9px; height: 46px; padding: 0 20px; border: 1.5px solid transparent; border-radius: 13px; font: 600 14.5px 'Plus Jakarta Sans', sans-serif; cursor: pointer; transition: transform .15s, filter .15s, background .15s; }
+.vr-btn:hover { transform: translateY(-1px); }
+.vr-btn--prim { color: #fff; background: linear-gradient(135deg, #033074, #2B6CB0); box-shadow: 0 12px 20px -12px rgba(3, 48, 116, .9); }
+.vr-btn--prim:hover { filter: brightness(1.1); }
+.vr-btn--sec { color: #0F3A85; background: #fff; border-color: #BCD2EE; }
+.vr-btn--sec:hover { background: #F0F5FC; }
+.vr-btn:focus-visible { outline: 3px solid rgba(43, 108, 176, .45); outline-offset: 2px; }
+
+@keyframes vr-fondu { from { opacity: 0; } to { opacity: 1; } }
+@keyframes vr-monte { from { opacity: 0; transform: translateY(14px) scale(.97); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .vr-voile, .vr-carte { animation: none; } .vr-anneau__reste { transition: none; } .vr-btn { transition: none; } .vr-btn:hover { transform: none; } }
+@media (max-width: 480px) { .vr-page .vr-identite { flex-direction: column; text-align: center; } .vr-carte { padding: 24px 20px 22px; } }

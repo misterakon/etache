@@ -1,0 +1,153 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Courrier;
+use App\Models\Direction;
+use App\Models\Personnel;
+use App\Models\Tache;
+use App\Models\User;
+use App\Support\Aide\ManuelAide;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
+use Illuminate\View\View;
+
+/**
+ * Recherche dans toute l'application : un champ, tous les mots saisis doivent se retrouver.
+ * Tâches, agents, courrier, directions, pages de l'application et manuel d'aide, limités à ce que le profil de l'utilisateur peut voir.
+ */
+class RechercheController extends Controller
+{
+    /** Pages proposées comme raccourcis : [libellé, route, profils (vide = tous), icône, mots-clés]. */
+    private const PAGES = [
+        ['Tableau de bord', 'dashboard', '', 'fa-house', 'accueil'],
+        ['Pilotage', 'cockpit.index', 'ADMIN|DG|RD', 'fa-chart-pie', 'suivi analyses statistiques retards synthèse exports'],
+        ['Liste des tâches', 'feuille_de_route.tache', '', 'fa-list-check', 'taches feuille de route'],
+        ['Mes tâches', 'feuille_de_route.tache_mes_taches', '', 'fa-user-check', 'mon travail'],
+        ['Tâches ponctuelles', 'ponctuelle.index', '', 'fa-bolt', 'hors feuille de route travail imprévu quotidien'],
+        ['Demandes de justification', 'feuille_de_route.justification.index', 'ADMIN|DG|RD', 'fa-scale-balanced', 'report retard décision'],
+        ['Courrier arrivée', 'courrier.arrivee', 'ADMIN|DG|COURRIER', 'fa-envelope-open-text', 'courriers reçus'],
+        ['Exercices', 'parametre.exercice', 'ADMIN|DG', 'fa-calendar-days', 'année reconduction paramètres'],
+        ['Réglages', 'reglages.index', 'ADMIN|DG', 'fa-sliders', 'configuration paramètres verrouillage'],
+        ['Aide et manuel', 'aide.index', '', 'fa-life-ring', 'guide manuel documentation'],
+    ];
+
+    public function index(Request $request): View
+    {
+        $q = trim((string) $request->query('q', ''));
+        $termes = $this->termes($q);
+
+        return view('recherche.index', [
+            'q' => $q, 'termes' => $termes, 'trop_court' => $q !== '' && $termes === [],
+            'rubriques' => $termes === [] ? [] : $this->rubriques($request->user(), $termes, 15),
+        ]);
+    }
+
+    /** Suggestions du champ de recherche de l'en-tête. */
+    public function suggestions(Request $request): JsonResponse
+    {
+        $termes = $this->termes((string) $request->query('q', ''));
+
+        return response()->json(['rubriques' => $termes === [] ? [] : $this->rubriques($request->user(), $termes, 4)]);
+    }
+
+    /** @return list<string> au moins deux caractères chacun, six mots au plus */
+    private function termes(string $q): array
+    {
+        return array_slice(array_values(array_filter(preg_split('/\s+/u', mb_substr($q, 0, 120)) ?: [], fn ($t) => mb_strlen($t) >= 2)), 0, 6);
+    }
+
+    /** Tous les mots doivent figurer dans l'un des champs. */
+    private function filtrer(Builder $requete, array $termes, array $champs): Builder
+    {
+        foreach ($termes as $t) {
+            $like = '%'.addcslashes($t, '%_\\').'%';
+            $requete->where(function ($w) use ($champs, $like) {
+                foreach ($champs as $c) {
+                    $w->orWhere($c, 'like', $like);
+                }
+            });
+        }
+
+        return $requete;
+    }
+
+    /**
+     * @param  list<string>  $termes
+     * @return list<array{titre: string, icone: string, couleur: string, nb: int, items: list<array{titre: string, sous: string, url: string}>}>
+     */
+    private function rubriques(User $user, array $termes, int $limite): array
+    {
+        $rubriques = [];
+
+        $taches = $this->filtrer(Tache::visiblePar($user)->with('statutExecution'), $termes, ['code', 'libelle', 'indicateur', 'livrable']);
+        $rubriques[] = $this->rubrique('Tâches', 'fa-list-check', 'bleu', $taches, $limite, fn (Tache $t) => [
+            'titre' => $t->code.' · '.$t->libelle,
+            'sous' => ($t->statutExecution?->libelle ?? '—').($t->date_fin ? ' · échéance '.$t->date_fin->format('d/m/Y') : ''),
+            'url' => route('feuille_de_route.tache.details', $t->id),
+        ]);
+
+        $ponctuelles = $this->filtrer(\App\Models\TachePonctuelle::visiblePar($user)->with('responsable'), $termes, ['code', 'libelle', 'description']);
+        $rubriques[] = $this->rubrique('Tâches ponctuelles', 'fa-bolt', 'orange', $ponctuelles->latest('id'), $limite, fn (\App\Models\TachePonctuelle $t) => [
+            'titre' => $t->code.' · '.$t->libelle, 'sous' => ($t->responsable?->nomComplet() ?? '—').' · '.(\App\Models\TachePonctuelle::STATUTS[$t->statut][0] ?? $t->statut),
+            'url' => route('ponctuelle.index', ['ouvrir' => $t->id]),
+        ]);
+
+        if ($user->hasRole('ADMIN|DG|RD')) {
+            $agents = $this->filtrer(Personnel::query(), $termes, ['nom', 'prenom', 'matricule', 'fonction', 'email']);
+            $rubriques[] = $this->rubrique('Agents', 'fa-users', 'vert', $agents->orderBy('nom'), $limite, fn (Personnel $p) => [
+                'titre' => $p->nomComplet(), 'sous' => trim(($p->fonction ?: 'Agent').($p->matricule ? ' · '.$p->matricule : '')),
+                'url' => route('dgepn.personnel.fiche', $p->id),
+            ]);
+
+            $directions = $this->filtrer(Direction::query(), $termes, ['nom', 'code']);
+            $rubriques[] = $this->rubrique('Directions', 'fa-sitemap', 'violet', $directions->orderBy('nom'), $limite, fn (Direction $d) => [
+                'titre' => $d->nom, 'sous' => (string) $d->code, 'url' => route('dgepn.direction'),
+            ]);
+        }
+
+        if ($user->hasRole('ADMIN|DG|COURRIER')) {
+            $courriers = $this->filtrer(Courrier::visiblePar($user), $termes, ['numero', 'objet', 'expediteur', 'reference_courrier']);
+            $rubriques[] = $this->rubrique('Courrier', 'fa-envelope-open-text', 'orange', $courriers->latest('id'), $limite, fn (Courrier $c) => [
+                'titre' => $c->numero.' · '.$c->objet, 'sous' => (string) $c->expediteur, 'url' => route('courrier.show', $c->id),
+            ]);
+        }
+
+        $rubriques[] = $this->rubriquePages($user, $termes, $limite);
+
+        $aide = array_slice(ManuelAide::chercher(implode(' ', $termes), $user, $limite), 0, $limite);
+        $rubriques[] = [
+            'titre' => 'Aide', 'icone' => 'fa-life-ring', 'couleur' => 'sarcelle', 'nb' => count($aide),
+            'items' => array_map(fn ($r) => ['titre' => $r['chapitre'].' › '.$r['section'], 'sous' => strip_tags($r['extrait']), 'url' => route('aide.chapitre', $r['slug']).'#'.$r['ancre']], $aide),
+        ];
+
+        return array_values(array_filter($rubriques, fn ($r) => $r['items'] !== []));
+    }
+
+    private function rubrique(string $titre, string $icone, string $couleur, Builder $requete, int $limite, callable $ligne): array
+    {
+        $nb = (clone $requete)->count();
+
+        return ['titre' => $titre, 'icone' => $icone, 'couleur' => $couleur, 'nb' => $nb, 'items' => $requete->limit($limite)->get()->map($ligne)->all()];
+    }
+
+    private function rubriquePages(User $user, array $termes, int $limite): array
+    {
+        $plat = fn (string $t) => Str::ascii(mb_strtolower($t));
+        $items = [];
+        foreach (self::PAGES as [$libelle, $route, $roles, , $mots]) {
+            if (($roles !== '' && ! $user->hasRole($roles)) || ! Route::has($route)) {
+                continue;
+            }
+            $texte = $plat($libelle.' '.$mots);
+            if (collect($termes)->every(fn ($t) => str_contains($texte, $plat($t)))) {
+                $items[] = ['titre' => $libelle, 'sous' => 'Aller à cette page', 'url' => route($route)];
+            }
+        }
+
+        return ['titre' => 'Pages', 'icone' => 'fa-compass', 'couleur' => 'gris', 'nb' => count($items), 'items' => array_slice($items, 0, $limite)];
+    }
+}

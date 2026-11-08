@@ -1,0 +1,12 @@
+/* Listes déroulantes avec recherche (select-recherche.js) */
+.sr__champ { cursor: text; padding-right: 34px !important; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%235A7BA6' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
+.sr__champ:focus { border-color: #2B6CB0; box-shadow: 0 0 0 3px rgba(43, 108, 176, .16); }
+.sr__champ::placeholder { color: #4B5563; }
+.sr__filtre { margin-bottom: 6px; }
+.sr__liste { position: fixed; z-index: 20000; margin: 0; padding: 6px; list-style: none; overflow-y: auto; background: #fff; border: 1px solid #B9CCE3; border-radius: 12px; box-shadow: 0 16px 38px rgba(20, 48, 79, .24); font-family: inherit; }
+.sr__groupe { padding: 9px 10px 4px; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #5A7BA6; cursor: default; }
+.sr__option { padding: 8px 10px; border-radius: 8px; font-size: 13.5px; color: #14304F; cursor: pointer; }
+.sr__option--vide { color: #4B5563; font-style: italic; }
+.sr__option--sel { font-weight: 700; color: #1F4E79; background: #EEF4FB; }
+.sr__option--active, .sr__option:hover { background: #DCE9F8; }
+.sr__vide { padding: 14px 10px; text-align: center; font-size: 13px; color: #4B5563; }

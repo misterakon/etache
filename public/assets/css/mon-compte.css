@@ -1,0 +1,30 @@
+/* Mon compte (public/assets/css/mon-compte.css) : identité, rattachement et sécurité. Mêmes tokens que le reste de l'application. */
+.mc-flash { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; padding: 14px 18px; border: 1px solid #A9E3C4; border-radius: 16px; background: #E7F7EE; color: #0B5A33; font: 600 13.5px 'Plus Jakarta Sans', sans-serif; }
+.mc-flash i { font-size: 16px; }
+
+.mc-grille { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
+@media (max-width: 960px) { .mc-grille { grid-template-columns: minmax(0, 1fr); } }
+
+.mc-carte { border: 1px solid #D5E3F4; border-radius: 20px; background: #fff; box-shadow: 0 14px 30px -24px rgba(15, 42, 91, .45); font-family: 'Plus Jakarta Sans', sans-serif; overflow: hidden; }
+.mc-carte__tete { display: flex; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid #EEF3FA; background: #F8FBFF; }
+.mc-carte__tete i { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(135deg, #033074, #2B6CB0); color: #fff; font-size: 14px; }
+.mc-carte__tete h2 { margin: 0; font: 800 15px 'Plus Jakarta Sans', sans-serif; color: #0F1B33; }
+.mc-corps { padding: 18px 20px 22px; }
+
+.mc-section { margin: 18px 0 8px; font: 800 11.5px 'Plus Jakarta Sans', sans-serif; letter-spacing: .06em; text-transform: uppercase; color: #2B6CB0; }
+.mc-ligne { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid #EEF3FA; }
+.mc-ligne:first-of-type { border-top: 0; }
+.mc-ligne__ico { display: grid; place-items: center; flex: none; width: 34px; height: 34px; border-radius: 10px; background: #F2F8FF; color: #2B6CB0; font-size: 13px; }
+.mc-ligne__lib { font: 700 11.5px 'Plus Jakarta Sans', sans-serif; letter-spacing: .03em; text-transform: uppercase; color: #6B7A94; }
+.mc-ligne__val { margin-top: 1px; font: 600 14px 'Plus Jakarta Sans', sans-serif; color: #0F1B33; }
+
+.mc-lien { display: inline-flex; align-items: center; gap: 8px; margin-top: 16px; font: 700 13px 'Plus Jakarta Sans', sans-serif; color: #033074 !important; text-decoration: none !important; }
+.mc-lien:hover { text-decoration: underline !important; }
+.mc-vide { display: flex; align-items: center; gap: 10px; margin-top: 16px; padding: 12px 14px; border: 1px dashed #D5E3F4; border-radius: 14px; color: #6B7A94; font: 500 13px 'Plus Jakarta Sans', sans-serif; }
+
+.mc-texte { margin: 0 0 16px; font: 500 13px/1.5 'Plus Jakarta Sans', sans-serif; color: #4B5563; }
+.mc-champ { margin-bottom: 14px; }
+.mc-champ .form-label { font: 700 12.5px 'Plus Jakarta Sans', sans-serif; color: #0F1B33; }
+.mc-erreur { margin-top: 4px; font: 600 12px 'Plus Jakarta Sans', sans-serif; color: #BE123C; }
+.mc-btn { display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 20px; border: 0; border-radius: 12px; background: linear-gradient(135deg, #033074, #2B6CB0); color: #fff; font: 800 13.5px 'Plus Jakarta Sans', sans-serif; cursor: pointer; box-shadow: 0 10px 18px -12px rgba(3, 48, 116, .9); transition: transform .15s; }
+.mc-btn:hover { transform: translateY(-1px); }

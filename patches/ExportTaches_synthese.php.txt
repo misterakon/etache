@@ -1,0 +1,30 @@
+    /**
+     * Cartes de chiffres clés et tableaux de synthèse (PDF et Excel).
+     * Option du 6e argument de ExportExcel::telecharger() et du 6e argument de ExportPdf::tableau().
+     */
+    public static function synthese(Collection $taches): array
+    {
+        $total = $taches->count();
+        $part = fn (int $n) => $total ? number_format($n * 100 / $total, 1, ',', ' ').' %' : '0 %';
+        $termine = $taches->filter(fn ($t) => $t->statutExecution?->code === StatutExecution::TERMINEE)->count();
+        $retard = $taches->filter(fn ($t) => $t->estEnRetard())->count();
+        $moyenne = $total ? round((float) $taches->avg('avancement_pourcentage'), 1) : 0;
+
+        $repartition = fn (callable $cle) => $taches->groupBy(fn ($t) => $cle($t) ?: 'Non renseigné')
+            ->map(fn ($g, $k) => [$k, $g->count(), $part($g->count())])
+            ->sortByDesc(1)->values()->all();
+
+        return [
+            'cartes' => [
+                ['libelle' => 'Tâches', 'valeur' => $total],
+                ['libelle' => 'Terminées', 'valeur' => $termine],
+                ['libelle' => 'En retard', 'valeur' => $retard],
+                ['libelle' => 'Avancement moyen', 'valeur' => $moyenne, 'unite' => '%'],
+            ],
+            'synthese' => [
+                ['titre' => 'Répartition par statut', 'entetes' => ['Statut', 'Tâches', 'Part'], 'lignes' => $repartition(fn ($t) => $t->statutExecution?->libelle)],
+                ['titre' => 'Répartition par priorité', 'entetes' => ['Priorité', 'Tâches', 'Part'], 'lignes' => $repartition(fn ($t) => $t->priorite?->libelle)],
+            ],
+        ];
+    }
+

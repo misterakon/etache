@@ -1,0 +1,135 @@
+.login-etache {
+  --orange: #f26a0f;
+  --vert: #009e60;
+  --bleu: #033074;
+}
+
+/* Fond : dégradé orange, blanc, vert (couleurs du drapeau), léger mouvement */
+.login-etache,
+.login-etache .login-card {
+  background-color: #fff !important;
+  background-image:
+    radial-gradient(55% 60% at 8% 12%, rgba(242, 106, 15, .55), transparent 70%),
+    radial-gradient(55% 60% at 92% 90%, rgba(0, 158, 96, .55), transparent 70%),
+    radial-gradient(35% 45% at 50% 40%, rgba(255, 255, 255, .95), transparent 80%),
+    linear-gradient(120deg, #ffb067 0%, #fff4e6 28%, #ffffff 50%, #e3f7ec 72%, #7fd9ac 100%) !important;
+  background-size: 100% 100%, 100% 100%, 100% 100%, 220% 220% !important;
+  background-repeat: no-repeat !important;
+  background-attachment: fixed;
+  animation: login-degrade 22s ease-in-out infinite alternate;
+}
+
+@keyframes login-degrade {
+  from { background-position: 0 0, 0 0, 0 0, 0% 50%; }
+  to   { background-position: 0 0, 0 0, 0 0, 100% 50%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .login-etache, .login-etache .login-card { animation: none; }
+}
+
+/* Cadre blanc : ombres foncées + bandeau orange / blanc / vert en haut */
+.login-etache .login-card .login-main {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  max-width: 440px;
+  padding: 46px 40px 38px;
+  background: #fff;
+  border: 0;
+  border-radius: 16px;
+  box-shadow:
+    0 40px 80px -20px rgba(3, 18, 48, .65),
+    0 20px 40px -15px rgba(0, 0, 0, .55),
+    0 0 0 1px rgba(3, 48, 116, .10);
+  animation: login-monte .6s ease both;
+}
+
+.login-etache .login-card .login-main::before,
+.login-etache .login-card .login-main::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  box-shadow: none;
+}
+
+.login-etache .login-card .login-main::before {
+  left: 0;
+  background: var(--orange);
+}
+
+.login-etache .login-card .login-main::after {
+  right: 0;
+  background: var(--vert);
+}
+
+/* Logo */
+.login-etache .login-card .logo img {
+  filter: drop-shadow(0 8px 12px rgba(0, 0, 0, .28));
+}
+
+/* Titre */
+.login-etache .login-main h4 {
+  color: var(--bleu);
+  font-weight: 700;
+  letter-spacing: .08em;
+  margin-bottom: 6px;
+}
+.login-etache .login-main h4::after {
+  content: "";
+  display: block;
+  width: 56px;
+  height: 3px;
+  margin: 10px auto 12px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--orange), var(--vert));
+}
+.login-etache .login-main p { color: #6b7587; }
+
+/* Champs */
+.login-etache .login-main .col-form-label {
+  color: #1f2a44;
+  font-weight: 500;
+}
+.login-etache .login-main .form-control {
+  height: 48px;
+  padding-left: 44px !important;
+  padding-right: 46px !important;
+  background-color: #f6f8fb;
+  background-repeat: no-repeat;
+  background-position: 14px center;
+  background-size: 18px;
+  border: 1.5px solid #d5dbe6;
+  border-radius: 10px;
+  transition: border-color .2s, box-shadow .2s, background-color .2s;
+}
+.login-etache .login-main .form-control:focus {
+  background-color: #fff;
+  border-color: var(--bleu);
+  box-shadow: 0 0 0 4px rgba(3, 48, 116, .12);
+}
+.login-etache .login-main .form-control.is-invalid { border-color: #dc3545; }
+
+.login-etache .login-main #email {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238a96a8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='14' rx='2'/%3E%3Cpath d='m3 7 9 6 9-6'/%3E%3C/svg%3E");
+}
+.login-etache .login-main #password {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238a96a8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='11' width='16' height='10' rx='2'/%3E%3Cpath d='M8 11V7a4 4 0 0 1 8 0v4'/%3E%3C/svg%3E");
+}
+
+/* Bouton afficher / masquer le mot de passe */
+.login-etache .login-main .show-hide {
+  cursor: pointer;
+  z-index: 5;
+}
+
+.login-etache .login-main .form-check-input { accent-color: var(--bleu); }
+
+@keyframes login-monte {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: none; }
+}
+@media (max-width: 480px) {
+  .login-etache .login-card .login-main { padding: 40px 22px 32px; }
+}
