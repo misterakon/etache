@@ -1,0 +1,95 @@
+/* =====================================================================
+   Fiche agent — bloc "fa3" : les trois colonnes de cartes compactes
+   (Identité, Contact, Affectation, Dossier, Carrière, Mouvements).
+   Réutilise les variables --tl-* déjà posées par personnel-fiche.css.
+   ===================================================================== */
+
+.fa3-grille { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: start; margin-top: 20px; }
+@media (max-width: 1200px) { .fa3-grille { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .fa3-grille { grid-template-columns: minmax(0, 1fr); } }
+.fa3-col { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+
+/* ---------- Carte ---------- */
+.fa3-carte { background: var(--tl-surface); border: 1px solid var(--tl-bordure); border-radius: 16px; box-shadow: var(--tl-ombre); padding: 18px 20px; }
+.fa3-carte__tete { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.fa3-carte__puce { flex: none; width: 34px; height: 34px; border-radius: 10px; display: inline-flex !important; align-items: center; justify-content: center; font-size: 14px; background: rgba(31, 42, 55, .06); color: var(--tl-neutre); }
+.fa3-carte__puce i { line-height: 1; }
+.fa3-identite .fa3-carte__puce { background: rgba(43, 108, 176, .12); color: var(--tl-encours); }
+.fa3-contact .fa3-carte__puce { background: rgba(14, 124, 134, .12); color: var(--tl-teal); }
+.fa3-affectation .fa3-carte__puce { background: rgba(109, 91, 208, .12); color: var(--tl-avenir); }
+.fa3-carriere .fa3-carte__puce { background: rgba(199, 125, 10, .14); color: var(--tl-attente); }
+.fa3-dossier .fa3-carte__puce { background: rgba(91, 107, 132, .12); color: var(--tl-neutre); }
+.fa3-mouvements .fa3-carte__puce { background: rgba(46, 125, 91, .12); color: var(--tl-terminee); }
+
+.fa3-carte__titre { flex: 1; min-width: 0; margin: 0; font-size: 15px; font-weight: 700; color: var(--tl-texte); display: flex; align-items: center; gap: 8px; }
+.fa3-compteur { font-size: 12px; font-weight: 600; color: var(--tl-texte-doux); }
+.fa3-crayon, .fa3-bouton { flex: none; }
+.fa3-crayon { width: 30px; height: 30px; border-radius: 8px; display: inline-flex !important; align-items: center; justify-content: center; color: var(--tl-texte-doux); background: rgba(31, 42, 55, .06); transition: background .15s, color .15s; }
+.fa3-crayon:hover { background: var(--tl-encours); color: #fff; }
+
+.fa3-carte__corps { display: flex; flex-direction: column; }
+
+/* ---------- Ligne libellé / valeur (identité, contact, affectation, carrière) ---------- */
+.fa3-ligne { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--tl-bordure); }
+.fa3-ligne:first-child { border-top: 0; padding-top: 0; }
+.fa3-ligne__ico { flex: none; width: 26px; height: 26px; border-radius: 8px; display: inline-flex !important; align-items: center; justify-content: center; font-size: 11.5px; background: rgba(31, 42, 55, .05); color: var(--tl-texte-doux); }
+.fa3-ligne__lib { flex: 0 0 auto; min-width: 120px; font-size: 12.5px; font-weight: 600; color: var(--tl-texte-doux); }
+.fa3-ligne__val { flex: 1; min-width: 0; text-align: right; font-size: 13.5px; font-weight: 600; color: var(--tl-texte); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fa3-ligne__val a { color: var(--tl-encours); }
+.fa3-ligne__val--vide { font-weight: 500; font-style: italic; color: var(--tl-texte-doux); opacity: .75; }
+@media (max-width: 420px) {
+  .fa3-ligne { flex-wrap: wrap; }
+  .fa3-ligne__val { text-align: left; flex-basis: 100%; white-space: normal; }
+}
+
+/* ---------- Carrière : emploi en vedette, puis tuiles grade/classe/échelon/indice ---------- */
+.fa3-emploi { display: flex; align-items: center; gap: 12px; padding-bottom: 14px; margin-bottom: 10px; border-bottom: 1px solid var(--tl-bordure); }
+.fa3-emploi > i { flex: none; width: 36px; height: 36px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; background: rgba(199, 125, 10, .14); color: var(--tl-attente); }
+.fa3-emploi__lib { display: block; font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--tl-texte-doux); }
+.fa3-emploi__val { display: block; margin-top: 2px; font-size: 14px; font-weight: 700; color: var(--tl-texte); }
+.fa3-emploi__val--vide { font-weight: 500; font-style: italic; color: var(--tl-texte-doux); }
+
+.fa3-tuiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+@media (max-width: 420px) { .fa3-tuiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.fa3-tuile { padding: 8px 6px; border-radius: 10px; background: rgba(31, 42, 55, .04); text-align: center; }
+.fa3-tuile--vide { opacity: .55; }
+.fa3-tuile__lib { display: block; font-size: 10px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--tl-texte-doux); }
+.fa3-tuile__val { display: block; margin-top: 3px; font-size: 14px; font-weight: 800; color: var(--tl-texte); }
+
+.fa3-deces { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 10px 12px; border-radius: 10px; font-size: 13px; font-weight: 600; background: rgba(167, 59, 52, .1); color: var(--tl-retard); }
+
+/* ---------- Dossier : liste de documents ---------- */
+.fa3-doc { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--tl-bordure); }
+.fa3-doc:first-child { border-top: 0; padding-top: 0; }
+.fa3-doc__ico { flex: none; width: 32px; height: 32px; border-radius: 9px; display: inline-flex !important; align-items: center; justify-content: center; font-size: 13px; background: rgba(31, 42, 55, .05); color: var(--tl-neutre); }
+.fa3-doc__corps { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.fa3-doc__type { font-size: 10px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--tl-texte-doux); }
+.fa3-doc__nom { font-size: 13px; font-weight: 600; color: var(--tl-texte); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fa3-doc__meta { font-size: 11.5px; color: var(--tl-texte-doux); }
+.fa3-doc__actions { flex: none; display: flex !important; align-items: center; gap: 4px; }
+.fa3-doc__actions a { width: 28px; height: 28px; border-radius: 8px; display: inline-flex !important; align-items: center; justify-content: center; color: var(--tl-texte-doux); background: rgba(31, 42, 55, .05); transition: background .15s, color .15s; }
+.fa3-doc__actions a:hover { background: var(--tl-encours); color: #fff; }
+.fa3-doc__suppr:hover { background: var(--tl-retard) !important; }
+.fa3-confidentiel { display: flex; align-items: center; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--tl-bordure); font-size: 11.5px; color: var(--tl-texte-doux); }
+.fa3-vide { padding: 14px 0; text-align: center; font-size: 13px; color: var(--tl-texte-doux); }
+
+/* ---------- Mouvements de poste : bouton, tableau, historique ---------- */
+.fa3-bouton { display: inline-flex !important; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 10px; font-size: 12.5px; font-weight: 700; background: var(--tl-encours); color: #fff !important; text-decoration: none !important; transition: opacity .15s; }
+.fa3-bouton:hover { opacity: .88; }
+
+.fa3-mouvements__corps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+@media (max-width: 1000px) { .fa3-mouvements__corps { grid-template-columns: minmax(0, 1fr); } }
+.fa3-sous-titre { margin: 0 0 10px; font-size: 13px; font-weight: 700; color: var(--tl-texte); }
+.fa3-meta { color: var(--tl-texte-doux); font-weight: 500; }
+
+.fa3-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.fa3-table th { padding: 6px 10px; text-align: left; font-size: 10.5px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--tl-texte-doux); border-bottom: 1px solid var(--tl-bordure); white-space: nowrap; }
+.fa3-table td { padding: 8px 10px; vertical-align: middle; color: var(--tl-texte); border-bottom: 1px solid var(--tl-bordure); }
+.fa3-table tr:last-child td { border-bottom: 0; }
+
+.fa3-historique { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.fa3-historique li { display: flex; align-items: center; gap: 10px; padding-bottom: 10px; font-size: 12.5px; color: var(--tl-texte); border-bottom: 1px solid var(--tl-bordure); }
+.fa3-historique li:last-child { padding-bottom: 0; border-bottom: 0; }
+
+/* ---------- Espacement des sections pleine largeur sous la grille ---------- */
+.pf-section-mouvements, .pf-section-onglets { margin-top: 20px; }
