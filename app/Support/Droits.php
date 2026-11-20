@@ -61,7 +61,6 @@ class Droits
                     'import_matrice' => self::page('Importation de la matrice', ['lecture' => ['import_matrice.voir'], 'gestion' => ['import_matrice.voir', 'import_matrice.importer']]),
                     'vues_taches' => self::page('Matrice, Gantt, calendrier', ['lecture' => ['vues_taches.voir']]),
                     'charge_travail' => self::page('Charge de travail', ['lecture' => ['charge_travail.voir']]),
-                    'vue_ensemble' => self::page('Vue d’ensemble', ['lecture' => ['vue_ensemble.voir']]),
                     'alerte' => self::page('Alertes (journal)', ['lecture' => ['alerte.voir']]),
                     'justification' => self::page('Demandes de justification', ['lecture' => ['justification.voir']], ['justification.decider' => 'Approuver ou refuser une demande']),
                 ],

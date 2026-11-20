@@ -1,0 +1,84 @@
+/* =====================================================================
+   Alertes envoyées & Journal d'activité : pages "flux" jumelles (liste
+   chronologique filtrable). Mêmes tokens que le reste de l'app.
+   ===================================================================== */
+.flux-page {
+  --fl-ink: #0F1B33; --fl-mute: #5B6B84; --fl-line: #E7EEF8; --fl-card: #fff; --fl-soft: #F5F7FB;
+  --fl-retard: #A73B34; --fl-attente: #C77D0A; --fl-terminee: #1F8A5B; --fl-encours: #2B6CB0; --fl-neutre: #7A8699; --fl-violet: #6D5BD0;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: var(--fl-ink);
+}
+.dark-only .flux-page { --fl-ink: #EAF0FF; --fl-mute: #9FB0CC; --fl-line: #2C3654; --fl-card: #222B45; --fl-soft: #1B2238; }
+.flux-page * { box-sizing: border-box; }
+
+.flux-ton-retard   { --c: var(--fl-retard); }
+.flux-ton-attente  { --c: var(--fl-attente); }
+.flux-ton-terminee { --c: var(--fl-terminee); }
+.flux-ton-encours  { --c: var(--fl-encours); }
+.flux-ton-neutre   { --c: var(--fl-neutre); }
+.flux-ton-violet   { --c: var(--fl-violet); }
+
+/* ---------- Panneau de filtres ---------- */
+.flux-filtres { margin-top: 20px; padding: 18px 20px; border: 1px solid var(--fl-line); border-radius: 18px; background: var(--fl-card); box-shadow: 0 10px 26px -22px rgba(15, 42, 91, .4); }
+.flux-filtres__grille { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px 16px; align-items: end; }
+.flux-champ { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.flux-champ label { font: 700 11.5px 'Plus Jakarta Sans', sans-serif; letter-spacing: .03em; text-transform: uppercase; color: var(--fl-mute); }
+.flux-champ select, .flux-champ input {
+  height: 40px; padding: 0 12px; border: 1.5px solid #D5E3F4; border-radius: 10px; background: var(--fl-card); color: var(--fl-ink);
+  font: 500 13.5px 'Plus Jakarta Sans', sans-serif;
+}
+.dark-only .flux-champ select, .dark-only .flux-champ input { border-color: #2C3654; }
+.flux-champ select:focus, .flux-champ input:focus { outline: 0; border-color: #2B6CB0; box-shadow: 0 0 0 3px rgba(43, 108, 176, .15); }
+.flux-champ--large { grid-column: span 2; }
+.flux-filtres__actions { display: flex; align-items: end; gap: 8px; }
+.flux-btn {
+  display: inline-flex !important; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 0 18px; border: 0; border-radius: 10px;
+  font: 700 13px 'Plus Jakarta Sans', sans-serif; cursor: pointer; text-decoration: none !important; white-space: nowrap; transition: opacity .15s, transform .15s;
+}
+.flux-btn:hover { opacity: .9; transform: translateY(-1px); }
+.flux-btn--principal { background: linear-gradient(135deg, #033074, #2B6CB0); color: #fff !important; box-shadow: 0 10px 18px -12px rgba(3, 48, 116, .8); }
+.flux-btn--doux { background: var(--fl-soft); color: var(--fl-ink) !important; }
+
+/* ---------- Compteur ---------- */
+.flux-compteur { margin: 18px 2px 6px; font: 700 12.5px 'Plus Jakarta Sans', sans-serif; color: var(--fl-mute); }
+.flux-compteur b { color: var(--fl-ink); }
+
+/* ---------- Table en lignes flottantes ---------- */
+.flux-panneau { padding: 8px 18px 16px; border: 1px solid var(--fl-line); border-radius: 18px; background: var(--fl-card); box-shadow: 0 14px 30px -26px rgba(15, 42, 91, .45); }
+table.flux-table { border-collapse: separate; border-spacing: 0 8px; width: 100%; margin-top: 6px; }
+table.flux-table thead th { border: 0; padding: 0 12px 6px; font: 800 10.5px 'Plus Jakarta Sans', sans-serif; letter-spacing: .06em; text-transform: uppercase; color: var(--fl-mute); text-align: left; white-space: nowrap; }
+table.flux-table tbody tr { background: var(--fl-soft); transition: box-shadow .15s; }
+table.flux-table tbody tr:hover { box-shadow: 0 8px 18px -14px rgba(15, 42, 91, .5); }
+table.flux-table tbody td { border-top: 1px solid var(--fl-line); border-bottom: 1px solid var(--fl-line); padding: 10px 12px; vertical-align: middle; font-size: 13px; }
+table.flux-table tbody td:first-child { border-left: 1px solid var(--fl-line); border-top-left-radius: 12px; border-bottom-left-radius: 12px; }
+table.flux-table tbody td:last-child { border-right: 1px solid var(--fl-line); border-top-right-radius: 12px; border-bottom-right-radius: 12px; }
+
+.flux-date { font: 600 12.5px 'Plus Jakarta Sans', sans-serif; color: var(--fl-mute); white-space: nowrap; }
+.flux-date b { display: block; color: var(--fl-ink); font-size: 13px; }
+
+.flux-code { display: inline-flex !important; align-items: center; padding: 2px 8px; border-radius: 7px; background: rgba(3, 48, 116, .08); color: #033074; font: 700 11px 'Plus Jakarta Sans', sans-serif; white-space: nowrap; }
+.dark-only .flux-code { background: rgba(140, 180, 255, .14); color: #9CC3FF; }
+.flux-lib { color: var(--fl-ink); font-weight: 500; }
+
+.flux-badge { display: inline-flex !important; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font: 700 11.5px 'Plus Jakarta Sans', sans-serif; color: var(--c); background: color-mix(in srgb, var(--c) 13%, transparent); white-space: nowrap; }
+.flux-badge i { font-size: 10px; }
+
+.flux-chip { display: inline-flex !important; align-items: center; padding: 3px 10px; border-radius: 8px; font: 700 11px 'Plus Jakarta Sans', sans-serif; color: #fff; white-space: nowrap; }
+.flux-chip--0 { background: #2B6CB0; } .flux-chip--1 { background: #0E7C86; } .flux-chip--2 { background: #6D5BD0; }
+.flux-chip--3 { background: #C77D0A; } .flux-chip--4 { background: #1F8A5B; } .flux-chip--5 { background: #A73B34; }
+.flux-chip--6 { background: #5B6B84; } .flux-chip--7 { background: #9A3412; }
+
+.flux-avatar { display: inline-flex !important; align-items: center; justify-content: center; flex: none; width: 26px; height: 26px; margin-right: 8px; border-radius: 50%; color: #fff; font: 700 10px 'Plus Jakarta Sans', sans-serif; background: linear-gradient(135deg, #12338F, #1D4ED8); vertical-align: middle; }
+.flux-acteur { display: inline-flex !important; align-items: center; }
+
+.flux-canal { display: inline-flex !important; align-items: center; gap: 7px; color: var(--fl-ink); font-weight: 600; font-size: 13px; }
+.flux-canal i { color: var(--fl-mute); width: 14px; text-align: center; }
+
+.flux-vide { padding: 36px 8px; text-align: center; color: var(--fl-mute); font: 500 13.5px 'Plus Jakarta Sans', sans-serif; }
+.flux-vide i { display: block; margin-bottom: 8px; font-size: 22px; opacity: .5; }
+
+.flux-pagination { margin-top: 14px; }
+
+@media (max-width: 700px) {
+  .flux-filtres__grille { grid-template-columns: 1fr 1fr; }
+  .flux-champ--large { grid-column: span 2; }
+}

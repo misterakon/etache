@@ -414,13 +414,10 @@ class FeuilleRouteControlleur extends Controller
             ->visiblePar(auth()->user()) // responsable de tâche (et RD sans mandat) : uniquement ses tâches
             ->filtrer($filtres);
 
-        // Pages lourdes : le serveur ne charge que la page demandée (tableau matrice et Gantt) ou la fenêtre utile (calendrier)
-        $paginateur = null;
-        $resumeComplet = null;
+        // Tableau matrice et Gantt : groupés par action pour lire la hiérarchie complète (pas de pagination au
+        // niveau tâche, qui couperait des axes entiers hors de la page affichée). Calendrier : fenêtre utile.
         if (in_array($vue, ['tableau', 'gantt'], true)) {
-            $resumeComplet = VuesTachesDonnees::resume((clone $requete)->setEagerLoads([])->with('statutExecution')->get());
-            $paginateur = $requete->orderBy('action_mesurable_id')->orderBy('code')->paginate(25)->withQueryString();
-            $taches = $paginateur->getCollection();
+            $taches = $requete->orderBy('action_mesurable_id')->orderBy('code')->get();
         } elseif ($vue === 'calendrier') {
             $taches = $requete->whereNotNull('date_fin')->whereDate('date_fin', '<=', today()->addDays(14))->orderBy('code')->get();
         } else {
@@ -488,12 +485,12 @@ class FeuilleRouteControlleur extends Controller
             'gantt' => ['gantt' => VuesTachesDonnees::gantt($taches, $responsableRoleId)],
             default => ListeTachesDonnees::depuis($taches), // liste (et kanban / arborescence) : vue liste
         };
-        $resume = isset($vuesBlade[$vue]) ? ($resumeComplet ?? VuesTachesDonnees::resume($taches)) : null;
+        $resume = isset($vuesBlade[$vue]) ? VuesTachesDonnees::resume($taches) : null;
 
         return view($vuesBlade[$vue] ?? 'feuille_de_route.tache-list', compact(
             'vue', 'taches', 'hierarchie', 'colonnesKanban', 'roleIds', 'responsableRoleId', 'nbFiltresActifs', 'peutMesTaches',
             'axes', 'actionsCles', 'directions', 'actionsMesurables', 'priorites', 'statutsExecution',
-            'roles', 'personnels', 'toutesLesTaches', 'resume', 'exercices', 'exerciceId', 'exerciceDefautId', 'rolesDirection', 'paginateur'
+            'roles', 'personnels', 'toutesLesTaches', 'resume', 'exercices', 'exerciceId', 'exerciceDefautId', 'rolesDirection'
         ) + $donneesVue);
     }
 
@@ -965,8 +962,6 @@ class FeuilleRouteControlleur extends Controller
 
     public function vueEnsemble()
     {
-        Gate::authorize('vue_ensemble.voir');
-
         $axes = Axe::with([
             'actionsCles' => fn ($q) => $q->orderBy('ordre'),
             'actionsCles.actionsMesurables' => fn ($q) => $q->orderBy('ordre'),

@@ -15,10 +15,15 @@ class RegleAlerte extends Model
     //  - responsable_direction : utilisateur de profil RD rattache a la direction du responsable ;
     //  - dg / administrateur : utilisateurs de profil DG / ADMIN.
     const RESPONSABLE = 'responsable';
+
     const PILOTE = 'pilote';
+
     const CONTRIBUTEUR = 'contributeur';
+
     const RESPONSABLE_DIRECTION = 'responsable_direction';
+
     const DG = 'dg';
+
     const ADMINISTRATEUR = 'administrateur';
 
     const DESTINATAIRES = [
@@ -37,6 +42,16 @@ class RegleAlerte extends Model
             'destinataires' => 'array',
             'actif' => 'boolean',
         ];
+    }
+
+    /** Ton (couleur de la palette commune, voir journal-alertes.css) déduit du décalage par rapport à l'échéance. */
+    public function ton(): string
+    {
+        return match (true) {
+            $this->decalage_jours > 0 => 'retard',
+            $this->decalage_jours >= -3 => 'attente',
+            default => 'encours',
+        };
     }
 
     /**

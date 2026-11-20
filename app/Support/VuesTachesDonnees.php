@@ -134,6 +134,7 @@ class VuesTachesDonnees
                     'extendedProps' => [
                         'code' => $t->code,
                         'libelle' => $t->libelle,
+                        'axe' => $t->actionMesurable?->actionCle?->axe?->code,
                         'ton' => $ton,
                         'statut' => $t->statutExecution?->libelle ?? '—',
                         'avancement' => (int) $t->avancement_pourcentage,

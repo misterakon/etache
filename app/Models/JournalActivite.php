@@ -23,13 +23,16 @@ class JournalActivite extends Model
     public const MODULES = [
         'taches' => 'Tâches',
         'sous_taches' => 'Sous-tâches',
+        'taches_ponctuelles' => 'Tâches ponctuelles',
         'fichiers' => 'Fichiers',
         'exercices' => 'Exercices',
         'exports' => 'Exports',
         'reglages' => 'Réglages',
+        'parametre' => 'Paramètres',
         'courrier' => 'Courrier',
         'personnel' => 'Personnel',
         'pilotage' => 'Pilotage',
+        'session' => 'Session',
     ];
 
     public const EVENEMENTS = [
@@ -72,6 +75,14 @@ class JournalActivite extends Model
         'traitement' => 'Traitement',
         'refus' => 'Refus',
         'annulation' => 'Annulation',
+        'verrouillage' => 'Verrouillage',
+        'deverrouillage' => 'Déverrouillage',
+        'deverrouillage_echec' => 'Échec de déverrouillage',
+        'deconnexion_inactivite' => 'Déconnexion (inactivité)',
+        'mot_de_passe_modifie' => 'Mot de passe modifié',
+        'profil_acces_cree' => "Création d'un profil d'accès",
+        'profil_acces_modifie' => "Modification d'un profil d'accès",
+        'profil_acces_supprime' => "Suppression d'un profil d'accès",
     ];
 
     protected static function booted(): void
@@ -99,6 +110,47 @@ class JournalActivite extends Model
     public function libelleEvenement(): string
     {
         return self::EVENEMENTS[$this->evenement] ?? $this->evenement;
+    }
+
+    /** Ton (couleur de la palette commune, voir journal-alertes.css) déduit du type d'événement. */
+    public function ton(): string
+    {
+        return match (true) {
+            in_array($this->evenement, ['suppression', 'refus', 'annulation', 'verrouillage', 'deverrouillage_echec', 'deconnexion_inactivite', 'fin_affectation', 'profil_acces_supprime'], true) => 'retard',
+            in_array($this->evenement, ['creation', 'validation', 'deverrouillage', 'restauration', 'reouverture', 'enregistrement', 'depot', 'profil_acces_cree'], true) => 'terminee',
+            in_array($this->evenement, ['consultation', 'telechargement', 'export', 'scan'], true) => 'neutre',
+            default => 'encours',
+        };
+    }
+
+    /** Icône Font Awesome déduite du type d'événement. */
+    public function icone(): string
+    {
+        return match (true) {
+            str_contains($this->evenement, 'suppression') => 'fa-solid fa-trash-can',
+            str_contains($this->evenement, 'creation') => 'fa-solid fa-plus',
+            str_contains($this->evenement, 'modification') => 'fa-regular fa-pen-to-square',
+            $this->evenement === 'verrouillage' => 'fa-solid fa-lock',
+            str_contains($this->evenement, 'deverrouillage') => 'fa-solid fa-lock-open',
+            str_contains($this->evenement, 'validation') => 'fa-solid fa-check',
+            str_contains($this->evenement, 'refus'), str_contains($this->evenement, 'annulation') => 'fa-solid fa-xmark',
+            str_contains($this->evenement, 'telechargement') => 'fa-solid fa-download',
+            str_contains($this->evenement, 'export') => 'fa-solid fa-file-export',
+            str_contains($this->evenement, 'import') => 'fa-solid fa-file-import',
+            str_contains($this->evenement, 'consultation') => 'fa-regular fa-eye',
+            str_contains($this->evenement, 'depot') => 'fa-solid fa-upload',
+            str_contains($this->evenement, 'archivage') => 'fa-solid fa-box-archive',
+            str_contains($this->evenement, 'restauration') => 'fa-solid fa-rotate-left',
+            str_contains($this->evenement, 'cloture') => 'fa-solid fa-lock',
+            str_contains($this->evenement, 'reouverture') => 'fa-solid fa-lock-open',
+            str_contains($this->evenement, 'affectation') => 'fa-solid fa-user-tag',
+            str_contains($this->evenement, 'imputation'), str_contains($this->evenement, 'renvoi') => 'fa-solid fa-share',
+            str_contains($this->evenement, 'reponse') => 'fa-solid fa-reply',
+            str_contains($this->evenement, 'synthese') => 'fa-solid fa-file-lines',
+            str_contains($this->evenement, 'mot_de_passe') => 'fa-solid fa-key',
+            str_contains($this->evenement, 'deconnexion') => 'fa-solid fa-right-from-bracket',
+            default => 'fa-solid fa-circle-dot',
+        };
     }
 
     /** Activité d'une tâche (sous-tâches, fichiers...) pour l'onglet "Activité" ; les téléchargements n'y figurent pas. */

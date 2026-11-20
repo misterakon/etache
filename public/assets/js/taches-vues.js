@@ -23,7 +23,8 @@
   }
   function pad(n) { return (n < 10 ? '0' : '') + n; }
   // Jours entiers depuis 1970 (UTC) : évite tout décalage de fuseau horaire
-  function jourDepuisTexte(t) { var p = t.split('-'); return Date.UTC(+p[0], +p[1] - 1, +p[2]) / 86400000; }
+  // Accepte "YYYY-MM-DD" ou un horodatage complet ("YYYY-MM-DDTHH:mm:ssZ", renvoyé par FullCalendar pour certaines vues)
+  function jourDepuisTexte(t) { var p = t.split('T')[0].split('-'); return Date.UTC(+p[0], +p[1] - 1, +p[2]) / 86400000; }
   function dateDepuisJour(n) { return new Date(n * 86400000); }
 
   /* ---------------------------------------------------------------- infobulle */
@@ -120,6 +121,8 @@
   }
 
   /* ================================================================ CALENDRIER */
+  var JOURS_LONGS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+
   function initCalendrier() {
     var el = document.getElementById('calendrier-taches');
     var source = el ? el.getAttribute('data-source') : null;
@@ -127,6 +130,86 @@
     if (!el || (!source && !evenements) || !window.FullCalendar) return;
 
     var titre = document.getElementById('cal-titre');
+    var agendaEl = document.getElementById('agenda-taches');
+    var modeAgenda = false;
+    var dernierePlage = null;
+
+    function tonsVisibles() {
+      var v = {};
+      document.querySelectorAll('[data-cal-ton]').forEach(function (c) { v[c.dataset.calTon] = c.checked; });
+      return v;
+    }
+
+    // Semaine en cartes, groupées par jour : alternative à la grille pour la vue Agenda
+    function dessinerAgenda(evenementsBruts, debutStr) {
+      if (!agendaEl) return;
+      var visibles = tonsVisibles();
+      var auj = jourDepuisTexte(new Date().toISOString().slice(0, 10));
+      var jourDebut = jourDepuisTexte(debutStr);
+      var jours = [];
+      for (var i = 0; i < 7; i++) { jours.push(jourDebut + i); }
+
+      var parJour = {};
+      evenementsBruts.forEach(function (e) {
+        if (visibles[e.extendedProps.ton] === false) return;
+        (parJour[e.start] = parJour[e.start] || []).push(e);
+      });
+
+      var html = '<div class="ag-semaine">';
+      jours.forEach(function (j) {
+        var d = dateDepuisJour(j);
+        var iso = d.toISOString().slice(0, 10);
+        var estAuj = j === auj;
+        var tons = {};
+        (parJour[iso] || []).forEach(function (e) { tons[e.extendedProps.ton] = true; });
+        html += '<div class="ag-jour' + (estAuj ? ' ag-jour--actif' : '') + '">'
+          + '<div class="ag-jour__nom">' + JOURS[d.getUTCDay()] + '</div>'
+          + '<div class="ag-jour__num">' + d.getUTCDate() + '</div>'
+          + '<div class="ag-jour__pts">' + Object.keys(tons).slice(0, 4).map(function (t) {
+            return '<span class="ag-pt" style="background:' + (estAuj ? '#fff' : 'var(--tl-' + t + ')') + '"></span>';
+          }).join('') + '</div></div>';
+      });
+      html += '</div>';
+
+      var auMoinsUne = false;
+      jours.forEach(function (j) {
+        var d = dateDepuisJour(j);
+        var iso = d.toISOString().slice(0, 10);
+        var evs = (parJour[iso] || []).slice().sort(function (a, b) { return a.extendedProps.code < b.extendedProps.code ? -1 : 1; });
+        if (!evs.length) { return; }
+        auMoinsUne = true;
+        html += '<div class="ag-jourbloc"><div class="ag-jourbloc__tete"><b>'
+          + (j === auj ? "Aujourd'hui · " : '') + JOURS_LONGS[d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' + MOIS[d.getUTCMonth()].toLowerCase()
+          + '</b><span>' + evs.length + ' tâche' + (evs.length > 1 ? 's' : '') + '</span></div>';
+        evs.forEach(function (e) {
+          var p = e.extendedProps;
+          html += '<a class="ag-carte" style="--c:var(--tl-' + p.ton + ')" href="' + p.url + '">'
+            + (p.axe ? '<span class="ag-carte__axe">' + esc(p.axe) + '</span>' : '')
+            + '<div class="ag-carte__corps"><div class="ag-carte__code">' + esc(p.code) + '</div><div class="ag-carte__lib">' + esc(p.libelle) + '</div></div>'
+            + (p.responsables ? '<span class="ag-carte__resp">' + esc(p.responsables) + '</span>' : '')
+            + '<span class="ag-carte__badge">' + esc(p.statut) + '</span></a>';
+        });
+        html += '</div>';
+      });
+      if (!auMoinsUne) { html += '<p class="ag-vide">Aucune tâche cette semaine.</p>'; }
+
+      agendaEl.innerHTML = html;
+    }
+
+    function rendreAgenda() {
+      if (!agendaEl || !dernierePlage) { return; }
+      var p = new URLSearchParams(window.location.search);
+      p.delete('vue'); p.set('start', dernierePlage.start); p.set('end', dernierePlage.end);
+      fetch(source + '?' + p.toString(), { credentials: 'same-origin', headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function (r) { if (!r.ok) { throw new Error('http ' + r.status); } return r.json(); })
+        .then(function (evs) { dessinerAgenda(evs, dernierePlage.start); })
+        .catch(function () { agendaEl.innerHTML = '<p class="ag-vide">Impossible de charger l’agenda.</p>'; });
+    }
+
+    function majBoutonsActifs(typeVue) {
+      var vueActuelle = modeAgenda ? 'agenda' : typeVue;
+      document.querySelectorAll('[data-cal-vue]').forEach(function (b) { b.classList.toggle('actif', b.dataset.calVue === vueActuelle); });
+    }
 
     var cal = new FullCalendar.Calendar(el, {
       initialView: 'dayGridMonth',
@@ -171,6 +254,7 @@
       },
 
       datesSet: function (info) {
+        dernierePlage = { start: info.startStr, end: info.endStr };
         if (titre) {
           if (info.view.type === 'dayGridMonth') {
             var d = info.view.currentStart;
@@ -180,9 +264,8 @@
             titre.textContent = a.getDate() + ' ' + MOIS_COURTS[a.getMonth()] + ' – ' + b.getDate() + ' ' + MOIS_COURTS[b.getMonth()] + ' ' + b.getFullYear();
           }
         }
-        document.querySelectorAll('[data-cal-vue]').forEach(function (b) {
-          b.classList.toggle('actif', b.dataset.calVue === info.view.type);
-        });
+        if (modeAgenda) { rendreAgenda(); }
+        majBoutonsActifs(info.view.type);
       }
     });
     cal.render();
@@ -194,17 +277,29 @@
       });
     });
     document.querySelectorAll('[data-cal-vue]').forEach(function (b) {
-      b.addEventListener('click', function () { cal.changeView(b.dataset.calVue); });
+      b.addEventListener('click', function () {
+        var v = b.dataset.calVue;
+        modeAgenda = (v === 'agenda');
+        // display, pas hidden : le CSS de FullCalendar impose son propre display sur .fc et gagnerait sur [hidden]
+        el.style.display = modeAgenda ? 'none' : '';
+        if (agendaEl) { agendaEl.hidden = !modeAgenda; }
+        if (modeAgenda && cal.view.type === 'dayGridWeek') {
+          rendreAgenda();
+          majBoutonsActifs(cal.view.type);
+        } else {
+          cal.changeView(modeAgenda ? 'dayGridWeek' : v);
+        }
+      });
     });
 
     // Filtres par statut
     document.querySelectorAll('[data-cal-ton]').forEach(function (cb) {
       cb.addEventListener('change', function () {
-        var visibles = {};
-        document.querySelectorAll('[data-cal-ton]').forEach(function (c) { visibles[c.dataset.calTon] = c.checked; });
+        var visibles = tonsVisibles();
         cal.getEvents().forEach(function (e) {
           e.setProp('display', visibles[e.extendedProps.ton] === false ? 'none' : 'auto');
         });
+        if (modeAgenda) { rendreAgenda(); }
       });
     });
   }

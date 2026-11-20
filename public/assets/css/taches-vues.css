@@ -197,8 +197,8 @@
 .mx-pile { display: flex; }
 .mx-avatar {
   width: 30px; height: 30px; margin-left: -8px; overflow: hidden; flex-shrink: 0; border-radius: 50%;
-  display: inline-flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 700; color: #fff; background: var(--tl-encours);
+  display: inline-flex !important; align-items: center !important; justify-content: center !important;
+  font-size: 11px; font-weight: 700; color: #fff; background: var(--tl-encours); line-height: 1;
   box-shadow: 0 0 0 2px var(--tl-surface);
 }
 .mx-avatar:first-child { margin-left: 0; }
@@ -231,7 +231,7 @@
   color: var(--tl-texte); background: var(--c-soft); font-weight: 600; font-size: 13.5px;
 }
 .cal-filtre input { display: none; }
-.cal-filtre__case { width: 18px; height: 18px; border-radius: 6px; border: 2px solid var(--c); display: inline-flex; align-items: center; justify-content: center; }
+.cal-filtre__case { width: 18px; height: 18px; border-radius: 6px; border: 2px solid var(--c); display: inline-flex !important; align-items: center !important; justify-content: center !important; flex: none; }
 .cal-filtre input:checked + .cal-filtre__case { background: var(--c); }
 .cal-filtre input:checked + .cal-filtre__case::after { content: "✓"; font-size: 12px; line-height: 1; color: #fff; }
 .cal-filtre input:not(:checked) ~ .cal-filtre__lib { opacity: .5; text-decoration: line-through; }
@@ -412,3 +412,35 @@
 .vt-pagination__boutons a.actif { background: linear-gradient(135deg, #033074, #2B6CB0); border-color: transparent; color: #fff !important; }
 .vt-pagination__boutons a.inactif { opacity: .4; pointer-events: none; }
 .vt-pagination__points { color: #374151; padding: 0 2px; }
+
+/* ===================================================================== CALENDRIER : vue Agenda ===================================================================== */
+.ag-agenda { padding-top: 4px; }
+.ag-semaine { display: flex; gap: 10px; margin-bottom: 22px; }
+.ag-jour { flex: 1; padding: 12px 6px; border-radius: 14px; background: var(--tl-surface); border: 1px solid var(--tl-bordure); text-align: center; }
+.ag-jour--actif { background: linear-gradient(135deg, #033074, #2B6CB0); border-color: transparent; box-shadow: 0 10px 22px -12px rgba(3, 48, 116, .55); }
+.ag-jour__nom { font-size: 10.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--tl-texte-doux); }
+.ag-jour--actif .ag-jour__nom { color: rgba(255, 255, 255, .78); }
+.ag-jour__num { font-size: 19px; font-weight: 800; color: var(--tl-texte); margin-top: 4px; }
+.ag-jour--actif .ag-jour__num { color: #fff; }
+.ag-jour__pts { display: flex !important; justify-content: center; align-items: center; gap: 4px; margin-top: 8px; height: 7px; }
+.ag-pt { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+
+.ag-jourbloc { margin-bottom: 22px; }
+.ag-jourbloc__tete { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; }
+.ag-jourbloc__tete b { font-size: 15px; font-weight: 800; color: var(--tl-texte); }
+.ag-jourbloc__tete span { font-size: 12.5px; color: var(--tl-texte-doux); }
+.ag-carte { display: flex !important; align-items: center; gap: 14px; padding: 13px 16px; border-radius: 14px; background: var(--tl-surface); border: 1px solid var(--tl-bordure); box-shadow: var(--tl-ombre); margin-bottom: 8px; position: relative; overflow: hidden; text-decoration: none !important; transition: box-shadow .15s, transform .15s; }
+.ag-carte:hover { box-shadow: var(--tl-ombre-hover); transform: translateY(-1px); }
+.ag-carte::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--c); }
+.ag-carte__axe { flex: none; font-size: 10.5px; font-weight: 800; color: var(--tl-texte-doux); background: rgba(31, 42, 55, .06); padding: 3px 8px; border-radius: 7px; }
+.ag-carte__corps { flex: 1; min-width: 0; }
+.ag-carte__code { font-size: 11px; font-weight: 700; color: var(--c); }
+.ag-carte__lib { font-size: 13.5px; font-weight: 600; color: var(--tl-texte); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ag-carte__resp { flex: none; max-width: 160px; font-size: 12px; color: var(--tl-texte-doux); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ag-carte__badge { flex: none; font-size: 11px; font-weight: 800; padding: 5px 11px; border-radius: 999px; color: #fff; background: var(--c); white-space: nowrap; }
+.ag-vide { padding: 30px 8px; text-align: center; color: var(--tl-texte-doux); font-size: 13.5px; }
+@media (max-width: 760px) {
+  .ag-semaine { flex-wrap: wrap; }
+  .ag-jour { flex: 1 1 calc(25% - 8px); }
+  .ag-carte__resp { display: none; }
+}

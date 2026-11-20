@@ -1,93 +1,101 @@
 @extends('layout.master')
 @section('title', "Journal d'activité")
 
+@section('css')
+  <link rel="stylesheet" href="{{ asset('assets/css/entete-page.css') }}?v={{ filemtime(public_path('assets/css/entete-page.css')) }}">
+  <link rel="stylesheet" href="{{ asset('assets/css/journal-alertes.css') }}?v={{ filemtime(public_path('assets/css/journal-alertes.css')) }}">
+@endsection
+
 @section('main-content')
   <div class="page-body">
-    <div class="container w-full">
-      <div class="page-title">
-        <div class="grid grid-cols-12 mx-2 items-center">
-          <div class="col-span-6 sm:col-span-12"><h3>Journal d'activité</h3></div>
-          <div class="col-span-6 sm:col-span-12">
-            <ol class="breadcrumb flex">
-              <li class="breadcrumb-item"><a href="{{ route('dashboard') }}"><svg class="stroke-icon"><use href="{{ asset('assets/svg/icon-sprite.svg#stroke-home') }}"></use></svg></a></li>
-              <li class="breadcrumb-item active">Journal d'activité</li>
-            </ol>
+    <div class="container ep-page flux-page">
+      <x-entete-page tag="Système" titre="Journal d'activité" sous="Chaque action sensible est enregistrée : non modifiable, non supprimable.">
+        <x-slot:badges>
+          <span class="ep-hero__code"><i class="fa-solid fa-list-check"></i> {{ $entrees->total() }} entrée(s)</span>
+        </x-slot:badges>
+        <x-slot:actions>
+          <a class="flux-btn flux-btn--principal" href="{{ route('journal.index', array_merge(request()->query(), ['export' => 'xlsx'])) }}"><i class="fa-solid fa-download"></i> Excel</a>
+        </x-slot:actions>
+      </x-entete-page>
+
+      {{-- Filtres --}}
+      <form method="GET" action="{{ route('journal.index') }}" class="flux-filtres">
+        <div class="flux-filtres__grille">
+          <div class="flux-champ">
+            <label for="f_du">Du</label>
+            <input id="f_du" type="date" name="du" value="{{ request('du') }}">
+          </div>
+          <div class="flux-champ">
+            <label for="f_au">Au</label>
+            <input id="f_au" type="date" name="au" value="{{ request('au') }}">
+          </div>
+          <div class="flux-champ">
+            <label for="f_module">Module</label>
+            <select id="f_module" name="module">
+              <option value="">Tous</option>
+              @foreach ($modules as $cle => $lib) <option value="{{ $cle }}" @selected(request('module') === $cle)>{{ $lib }}</option> @endforeach
+            </select>
+          </div>
+          <div class="flux-champ">
+            <label for="f_evenement">Événement</label>
+            <select id="f_evenement" name="evenement">
+              <option value="">Tous</option>
+              @foreach ($evenements as $cle => $lib) <option value="{{ $cle }}" @selected(request('evenement') === $cle)>{{ $lib }}</option> @endforeach
+            </select>
+          </div>
+          <div class="flux-champ">
+            <label for="f_user">Acteur</label>
+            <select id="f_user" name="user_id">
+              <option value="">Tous</option>
+              @foreach ($acteurs as $a) <option value="{{ $a->id }}" @selected((string) request('user_id') === (string) $a->id)>{{ $a->name }}</option> @endforeach
+            </select>
+          </div>
+          <div class="flux-champ flux-champ--large">
+            <label for="f_q">Recherche dans le résumé</label>
+            <input id="f_q" type="text" name="q" value="{{ request('q') }}" placeholder="Nom de fichier, sous-tâche...">
+          </div>
+          <div class="flux-filtres__actions">
+            <button class="flux-btn flux-btn--principal" type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
+            <a class="flux-btn flux-btn--doux" href="{{ route('journal.index') }}">Réinitialiser</a>
           </div>
         </div>
-      </div>
-    </div>
+      </form>
 
-    <div class="container">
-      {{-- Filtres --}}
-      <div class="card p-3" style="margin-bottom:16px;">
-        <form method="GET" action="{{ route('journal.index') }}">
-          <div class="grid grid-cols-12 gap-3">
-            <div class="col-span-2 md:col-span-6 sm:col-span-12">
-              <label class="form-label" for="f_du">Du</label>
-              <input class="form-control form-control-sm" id="f_du" type="date" name="du" value="{{ request('du') }}">
-            </div>
-            <div class="col-span-2 md:col-span-6 sm:col-span-12">
-              <label class="form-label" for="f_au">Au</label>
-              <input class="form-control form-control-sm" id="f_au" type="date" name="au" value="{{ request('au') }}">
-            </div>
-            <div class="col-span-2 md:col-span-6 sm:col-span-12">
-              <label class="form-label" for="f_module">Module</label>
-              <select class="form-select form-select-sm" id="f_module" name="module">
-                <option value="">Tous</option>
-                @foreach ($modules as $cle => $lib) <option value="{{ $cle }}" @selected(request('module') === $cle)>{{ $lib }}</option> @endforeach
-              </select>
-            </div>
-            <div class="col-span-3 md:col-span-6 sm:col-span-12">
-              <label class="form-label" for="f_evenement">Événement</label>
-              <select class="form-select form-select-sm" id="f_evenement" name="evenement">
-                <option value="">Tous</option>
-                @foreach ($evenements as $cle => $lib) <option value="{{ $cle }}" @selected(request('evenement') === $cle)>{{ $lib }}</option> @endforeach
-              </select>
-            </div>
-            <div class="col-span-3 md:col-span-6 sm:col-span-12">
-              <label class="form-label" for="f_user">Acteur</label>
-              <select class="form-select form-select-sm" id="f_user" name="user_id">
-                <option value="">Tous</option>
-                @foreach ($acteurs as $a) <option value="{{ $a->id }}" @selected((string) request('user_id') === (string) $a->id)>{{ $a->name }}</option> @endforeach
-              </select>
-            </div>
-            <div class="col-span-6 sm:col-span-12">
-              <label class="form-label" for="f_q">Recherche dans le résumé</label>
-              <input class="form-control form-control-sm" id="f_q" type="text" name="q" value="{{ request('q') }}" placeholder="Nom de fichier, sous-tâche...">
-            </div>
-            <div class="col-span-6 sm:col-span-12 flex gap-2" style="align-self:end;">
-              <button class="btn btn-primary text-white" type="submit"><i class="fa-solid fa-magnifying-glass"></i> Appliquer</button>
-              <a class="btn btn-secondary text-white" href="{{ route('journal.index') }}">Réinitialiser</a>
-              <a class="btn btn-primary text-white" href="{{ route('journal.index', array_merge(request()->query(), ['export' => 'xlsx'])) }}"><i class="fa-solid fa-download"></i> Excel</a>
-            </div>
-          </div>
-        </form>
-      </div>
+      <div class="flux-panneau" style="margin-top:18px;">
+        <div class="overflow-x-auto custom-scrollbar">
+          <table class="flux-table" style="width:100%">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Acteur</th>
+                <th>Module</th>
+                <th>Événement</th>
+                <th>Résumé</th>
+              </tr>
+            </thead>
+            <tbody>
+              @forelse ($entrees as $e)
+                @php $initiales = $e->acteur_nom ? collect(explode(' ', $e->acteur_nom))->map(fn ($m) => mb_substr($m, 0, 1))->take(2)->implode('') : '?'; @endphp
+                <tr>
+                  <td class="flux-date"><b>{{ $e->created_at->format('d/m/Y') }}</b>{{ $e->created_at->format('H:i') }}</td>
+                  <td><span class="flux-acteur"><span class="flux-avatar">{{ mb_strtoupper($initiales) }}</span>{{ $e->acteur_nom ?? '—' }}</span></td>
+                  <td><span class="flux-chip flux-chip--{{ crc32($e->module) % 8 }}">{{ $e->libelleModule() }}</span></td>
+                  <td><span class="flux-badge flux-ton-{{ $e->ton() }}"><i class="{{ $e->icone() }}"></i> {{ $e->libelleEvenement() }}</span></td>
+                  <td class="flux-lib">{{ $e->resume }}</td>
+                </tr>
+              @empty
+                <tr>
+                  <td colspan="5">
+                    <div class="flux-vide"><i class="fa-regular fa-folder-open"></i>Aucune entrée pour ces critères.</div>
+                  </td>
+                </tr>
+              @endforelse
+            </tbody>
+          </table>
+        </div>
 
-      <div class="card">
-        <div class="card-body">
-          <p class="c-o-light">{{ $entrees->total() }} entrée(s)</p>
-          <div class="overflow-x-auto">
-            <table class="table table-striped" style="width:100%">
-              <thead>
-                <tr><th>Date</th><th>Acteur</th><th>Module</th><th>Événement</th><th>Résumé</th></tr>
-              </thead>
-              <tbody>
-                @forelse ($entrees as $e)
-                  <tr>
-                    <td style="white-space:nowrap;">{{ $e->created_at->format('d/m/Y H:i') }}</td>
-                    <td>{{ $e->acteur_nom ?? '—' }}</td>
-                    <td>{{ $e->libelleModule() }}</td>
-                    <td>{{ $e->libelleEvenement() }}</td>
-                    <td>{{ $e->resume }}</td>
-                  </tr>
-                @empty
-                  <tr><td colspan="5" style="text-align:center;padding:24px;">Aucune entrée pour ces critères.</td></tr>
-                @endforelse
-              </tbody>
-            </table>
-          </div>
-          <div style="margin-top:12px;">{{ $entrees->links() }}</div>
+        <div class="flux-pagination">
+          {{ $entrees->links() }}
         </div>
       </div>
     </div>

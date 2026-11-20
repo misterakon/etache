@@ -90,9 +90,11 @@
                   <div class="cal-vues">
                     <button type="button" class="cal-btn actif" data-cal-vue="dayGridMonth">Mois</button>
                     <button type="button" class="cal-btn" data-cal-vue="dayGridWeek">Semaine</button>
+                    <button type="button" class="cal-btn" data-cal-vue="agenda">Agenda</button>
                   </div>
                 </div>
                 <div id="calendrier-taches" data-source="{{ route('feuille_de_route.tache.calendrier.evenements') }}"></div>
+                <div id="agenda-taches" class="ag-agenda" hidden></div>
               </div>
             </div>
 

@@ -43,7 +43,6 @@
             ['titre' => 'Axes', 'route' => 'feuille_de_route.axe', 'droit' => 'axe.voir'],
             ['titre' => 'Actions clés', 'route' => 'feuille_de_route.action_cle', 'droit' => 'action_cle.voir'],
             ['titre' => 'Actions mésurables', 'route' => 'feuille_de_route.action_mesurable', 'droit' => 'action_mesurable.voir'],
-            ['titre' => "Vue d'ensemble", 'route' => 'feuille_de_route.vue_ensemble', 'droit' => 'vue_ensemble.voir'],
             ['titre' => 'Tâches', 'enfants' => [
                 ['titre' => 'Liste', 'route' => 'feuille_de_route.tache', 'droit' => 'tache.voir'],
                 ['titre' => 'Tableau matrice', 'route' => 'feuille_de_route.tache', 'query' => ['vue' => 'tableau'], 'droit' => 'vues_taches.voir'],
